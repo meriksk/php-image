@@ -1,0 +1,34 @@
+{
+    "name": "meriksk/php-image",
+    "description": "Image lib",
+    "keywords": ["image", "gd", "imagick", "resize", "thumbnail", "scale"],
+	"type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marek Drugac",
+            "email": "marek@luceon.sk",
+            "role": "Creator"
+        }
+    ],
+	"require": {
+		"php": ">=5.6.0"
+	},
+    "require-dev": {
+        "phpunit/phpunit": "*",
+		"jenssegers/imagehash": "^0.4"
+    },
+	"suggest": {
+		"ext-gd": "to use GD library based image processing.",
+		"ext-imagick": "to use Imagick based image processing."
+	},
+    "autoload": {
+        "psr-4": {
+            "merik\\Image\\": "src/Image"
+        }
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml"
+    },
+    "minimum-stability": "stable"
+}
