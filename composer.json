@@ -7,7 +7,7 @@
     "authors": [
         {
             "name": "Marek Drugac",
-            "email": "marek@luceon.sk",
+            "email": "drugacm@gmail.com",
             "role": "Creator"
         }
     ],
@@ -15,9 +15,8 @@
 		"php": ">=5.6.0"
 	},
     "require-dev": {
-        "phpunit/phpunit": "*",
-		"jenssegers/imagehash": "^0.4"
-    },
+        "phpunit/phpunit": "*" 
+   },
 	"suggest": {
 		"ext-gd": "to use GD library based image processing.",
 		"ext-imagick": "to use Imagick based image processing."

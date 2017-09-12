@@ -1,10 +1,4 @@
 <?php
-//namespace merik\Image\Test;
-
-use Jenssegers\ImageHash\ImageHash;
-use Jenssegers\ImageHash\Implementations\AverageHash;
-use Jenssegers\ImageHash\Implementations\DifferenceHash;
-use Jenssegers\ImageHash\Implementations\PerceptualHash;
 use merik\Image\ImageFactory;
 use merik\Image\Image;
 
@@ -34,7 +28,7 @@ class ImageTest extends ImageTestCase
 	}
 
 	public function testLoad()
-	{		
+	{
 		$im = Image::load(self::$testImageLandscape, static::$lib);
 		$this->assertInstanceOf('merik\Image\Image', $im);
 		$this->assertEquals('merik\Image\Image' . static::$lib, get_class($im));
@@ -217,7 +211,7 @@ class ImageTest extends ImageTestCase
 	public function testSave()
 	{
 		$im = Image::load(self::$testImageLandscape, static::$lib);
-		
+
 		$tmpPath = $this->getTmpPath('testSave');
 		$im->save($tmpPath);
 		$this->assertFileExists($tmpPath);
@@ -290,11 +284,11 @@ class ImageTest extends ImageTestCase
 	{
 		// working image
 		$im = Image::load(self::$testImageLandscape, static::$lib);
-		
+
 		// resize
 		$im->fitToWidth(500);
 		$this->assertEquals([500, 333], $im->getDimensions());
-		
+
 		// save + test
 		$tmpPath = $this->getTmpPath('testFitToWidth');
 		$im->save($tmpPath, 100);
@@ -307,11 +301,11 @@ class ImageTest extends ImageTestCase
 	{
 		// working image
 		$im = Image::load(self::$testImageLandscape, static::$lib);
-		
+
 		// resize
 		$im->fitToHeight(333);
 		$this->assertEquals([500, 333], $im->getDimensions());
-		
+
 		// save + test
 		$tmpPath = $this->getTmpPath('testFitToHeight');
 		$im->save($tmpPath, 100);
@@ -361,7 +355,7 @@ class ImageTest extends ImageTestCase
 			$this->assertEquals(500, $info['width']);
 			$this->assertEquals(333, $info['height']);
 			$im->destroy();
-			
+
 		// portrait image
 		$im = Image::load(self::$testImagePortrait, static::$lib);
 
@@ -393,40 +387,76 @@ class ImageTest extends ImageTestCase
 				$this->assertEquals(1280, $info['height']);
 
 			$dim = [400, 400];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [800, 600];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(800, $info['width']);
+				$this->assertEquals(600, $info['height']);
 
 			$dim = [600, 800];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(600, $info['width']);
+				$this->assertEquals(800, $info['height']);
 
 			$dim = [1000, 300];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(300, $info['height']);
 
 			$dim = [300, 1000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
-
-			$dim = [2000, 2000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1920, 1280], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(300, $info['width']);
+				$this->assertEquals(1000, $info['height']);
 
 			$dim = [2000, 1000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1920, 1000], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1920, 1000], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1920, $info['width']);
+				$this->assertEquals(1000, $info['height']);
 
 			$dim = [1000, 2000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1000, 1280], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1000, 1280], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(1280, $info['height']);
 
 			$dim = [1000, 3000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1000, 1280], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1000, 1280], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(1280, $info['height']);
 
 		$im->destroy();
 
@@ -434,44 +464,85 @@ class ImageTest extends ImageTestCase
 		$im = Image::load(self::$testImagePortrait, static::$lib);
 
 			$dim = [2000, 2000];
-			$im->thumbnail($dim);
-			$this->assertEquals([1280, 1920], $im->getDimensions());
+				$im->thumbnail($dim);
+				$this->assertEquals([1280, 1920], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1280, $info['width']);
+				$this->assertEquals(1920, $info['height']);
 
 			$dim = [400, 400];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [800, 600];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(800, $info['width']);
+				$this->assertEquals(600, $info['height']);
 
 			$dim = [600, 800];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(600, $info['width']);
+				$this->assertEquals(800, $info['height']);
 
 			$dim = [1000, 300];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(300, $info['height']);
 
 			$dim = [300, 1000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals($dim, $im->getDimensions());
-
-			$dim = [2000, 2000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1280, 1920], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(300, $info['width']);
+				$this->assertEquals(1000, $info['height']);
 
 			$dim = [2000, 1000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1280, 1000], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1280, 1000], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1280, $info['width']);
+				$this->assertEquals(1000, $info['height']);
 
 			$dim = [1000, 2000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1000, 1920], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1000, 1920], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(1920, $info['height']);
 
 			$dim = [1000, 3000];
-			$im->revert()->thumbnail($dim);
-			$this->assertEquals([1000, 1920], $im->getDimensions());
+				$im->revert()->thumbnail($dim);
+				$this->assertEquals([1000, 1920], $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(1000, $info['width']);
+				$this->assertEquals(1920, $info['height']);
 
 		$im->destroy();
 
@@ -479,20 +550,40 @@ class ImageTest extends ImageTestCase
 		$im = Image::load(self::$testImageLandscape, static::$lib);
 
 			$dim = [400, 400];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [500, 400];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(500, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [400, 500];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(500, $info['height']);
 
 			$dim = [2000, 2000];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(2000, $info['width']);
+				$this->assertEquals(2000, $info['height']);
 
 		$im->destroy();
 
@@ -500,20 +591,40 @@ class ImageTest extends ImageTestCase
 		$im = Image::load(self::$testImagePortrait, static::$lib);
 
 			$dim = [400, 400];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [500, 400];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(500, $info['width']);
+				$this->assertEquals(400, $info['height']);
 
 			$dim = [400, 500];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(400, $info['width']);
+				$this->assertEquals(500, $info['height']);
 
 			$dim = [2000, 2000];
-			$im->revert()->thumbnail($dim, true);
-			$this->assertEquals($dim, $im->getDimensions());
+				$im->revert()->thumbnail($dim, true);
+				$this->assertEquals($dim, $im->getDimensions());
+				$tmpPath = $this->getTmpPath('testThumbnail_' . microtime(true));
+				$im->save($tmpPath, 100);
+				$info = $im->ping($tmpPath);
+				$this->assertEquals(2000, $info['width']);
+				$this->assertEquals(2000, $info['height']);
 
 		$im->destroy();
 

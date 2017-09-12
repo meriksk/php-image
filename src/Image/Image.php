@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use merik\Image\ImageFactory;
 
 /**
- * CImage helper
+ * Image class file
  */
 class Image
 {
@@ -49,8 +49,7 @@ class Image
 	protected $resource;
 
 	/**
-	 * Information about original image
-	 * @var array
+	 * @var Image Original image instance
 	 */
 	protected $imageOriginal;
 
@@ -75,14 +74,12 @@ class Image
 	protected $orientation;
 
 	/**
-	 * File MIME type
-	 * @var string
+	 * @var string File MIME type
 	 */
 	protected $mimeType;
 
 	/**
-	 * File extension
-	 * @var string
+	 * @var string File extension
 	 */
 	protected $extension;
 
@@ -94,7 +91,7 @@ class Image
 	/**
 	 * @var int
 	 */
-	protected $quality = 80;
+	protected $quality = 82;
 
 	/**
 	 * Image EXIF data
@@ -763,7 +760,7 @@ class Image
 	 * Shrink the image proportionally to fit inside a $width x $height box
 	 * @param int $width
 	 * @param int|null $height
-	 * @return  CImage
+	 * @return Image
 	 */
 	public function bestFit($width, $height = NULL)
 	{
@@ -901,130 +898,6 @@ class Image
 
 
 		if ($cropWidth > 0 && $cropHeight > 0) {
-			$this->debug("thumbnail($width, $height, ". ($shrink?'true': 'false') . ")\tcalling -> cropImage($cropWidth, $cropHeight, ". ($shrink?'true': 'false') . ")");
-
-			// return trimmed image
-			$this->cropImage($cropWidth, $cropHeight, $shrink);
-			$this->debug("cropImage($cropWidth, $cropHeight, ". ($shrink?'true': 'false') . ")\tcalling -> readMetaData()");
-			$this->readMetaData();
-		}
-
-		return;
-
-
-
-
-		/*
-		if ($shrink === true) {
-
-			// landscape
-			if ($aspectRatioBefore >= 1) {
-				$this->fitToWidth($maxWidth);
-			// portrait
-			} else {
-				$this->fitToHeight($maxHeight);
-			}
-
-			$cropWidth = $desiredWidth;
-			$cropHeight = $desiredHeight;
-
-		} else {
-
-			list ($maxWidth, $maxHeight) = $this->upscaleCheck($desiredWidth, $desiredHeight, $shrink);
-			var_dump("max width: $maxWidth x $maxHeight");
-
-			// desired width is bigger than max. width
-			if ($desiredWidth > $maxWidth || $desiredHeight > $maxHeight) {
-
-				if ($maxWidth >= $maxHeight) {
-					$width = round($maxHeight * $aspectRatioBefore);
-					$height = $maxHeight;
-				} else {
-					$width = $maxWidth;
-					$height = round($maxWidth / $aspectRatioBefore);
-				}
-
-			} else {
-
-				// landscape
-				if ($aspectRatioBefore > $aspectRatioAfter) {
-					$this->fitToHeight($maxHeight);
-					$cropWidth = round($desiredHeight * $aspectRatioAfter);
-					$cropHeight = $desiredHeight;
-				// portrait
-				} else {
-					$this->fitToWidth($desiredWidth);
-					$cropWidth = $desiredWidth;
-					$cropHeight = round($desiredWidth * $aspectRatioAfter);
-				}
-
-			}
-		}
-		*/
-
-		//$cropWidth = round();
-		//$cropHeight = $height;
-
-		var_dump("desired: $desiredWidth x $desiredHeight");
-		var_dump("max width: $maxWidth x $maxHeight");
-		var_dump("crop width: $cropWidth x $cropHeight");
-		echo "\n\n";
-
-
-
-		return;
-
-		// landscape
-		if ($aspectRatioBefore > 0) {
-
-			if ($h > $this->height) {
-				$h = $this->height;
-				$w = $h * $aspectRatioBefore;
-			}
-
-			if ($w > $this->width) {
-				$w = $this->width;
-				$h = $w / $aspectRatioBefore;
-			}
-
-		// portrait
-		} else {
-			if ($w > $this->width) {
-				$w = $this->width;
-				$h = $w * $aspectRatioBefore;
-			}
-
-			if ($h > $this->height) {
-				$h = $this->height;
-				$w = $h / $aspectRatioBefore;
-			}
-		}
-
-		if ($shrink === true) {
-
-			// landscape
-			if ($aspectRatioBefore > 0) {
-				$this->fitToWidth($w);
-			// portrait
-			} else {
-				$this->fitToHeight($h);
-			}
-
-		} else {
-
-			// resize if needed
-			if ($w > $this->width || $h > $this->height) {
-				$aspectRatioAfter = $w / $h;
-				if ($aspectRatioBefore > $aspectRatioAfter) {
-					$this->fitToHeight($h);
-				} else {
-					$this->fitToWidth($w);
-				}
-			}
-		}
-
-		if ($shrink!==true && ($cropWidth < $this->width || $cropHeight < $this->height)) {
-
 			$this->debug("thumbnail($width, $height, ". ($shrink?'true': 'false') . ")\tcalling -> cropImage($cropWidth, $cropHeight, ". ($shrink?'true': 'false') . ")");
 
 			// return trimmed image
