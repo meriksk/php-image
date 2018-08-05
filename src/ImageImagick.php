@@ -1,10 +1,9 @@
 <?php
 
-namespace merik\Image;
+namespace PHPImage;
 
 use Exception;
 use Imagick;
-use merik\Image\Image;
 
 /**
  * ImageImagick class file. 

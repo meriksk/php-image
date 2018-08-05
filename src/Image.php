@@ -1,12 +1,12 @@
 <?php
 
-namespace merik\Image;
+namespace PHPImage;
 
 use DateTime;
 use DateTimeZone;
 use Exception;
 use InvalidArgumentException;
-use merik\Image\ImageFactory;
+use PHPImage\ImageFactory;
 
 /**
  * Image class file

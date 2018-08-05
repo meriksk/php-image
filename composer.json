@@ -23,7 +23,7 @@
 	},
     "autoload": {
         "psr-4": {
-            "merik\\Image\\": "src/Image"
+            "PHPImage\\": "src/"
         }
     },
     "scripts": {

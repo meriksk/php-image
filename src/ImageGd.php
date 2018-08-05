@@ -1,9 +1,8 @@
 <?php
 
-namespace merik\Image;
+namespace PHPImage;
 
 use Exception;
-use merik\Image\Image;
 
 /**
  * CImageGd class.

@@ -3,7 +3,6 @@
 error_reporting(E_ALL);
 
 include_once dirname(__DIR__).'/vendor/autoload.php';
-include_once dirname(__DIR__).'/src/Image/autoloader.php';
 
 // Directory separator
 defined('DS') or define('DS', DIRECTORY_SEPARATOR);

@@ -1,6 +1,7 @@
 <?php
-use merik\Image\ImageFactory;
-use merik\Image\Image;
+
+use PHPImage\ImageFactory;
+use PHPImage\Image;
 
 
 class ImageTest extends ImageTestCase
@@ -12,14 +13,14 @@ class ImageTest extends ImageTestCase
 
 			// gd
 			$im = Image::getInstance(ImageFactory::LIB_GD);
-			$this->assertInstanceOf('merik\Image\Image', $im);
-			$this->assertEquals('merik\Image\ImageGd', get_class($im));
+			$this->assertInstanceOf('PHPImage\Image', $im);
+			$this->assertEquals('PHPImage\ImageGd', get_class($im));
 
 			// imagick
 			if (extension_loaded('Imagick')) {
 				$im = Image::getInstance(ImageFactory::LIB_IMAGICK);
-				$this->assertInstanceOf('merik\Image\Image', $im);
-				$this->assertEquals('merik\Image\ImageImagick', get_class($im));
+				$this->assertInstanceOf('PHPImage\Image', $im);
+				$this->assertEquals('PHPImage\ImageImagick', get_class($im));
 			}
 
 		} catch (Exception $e) {
@@ -30,8 +31,8 @@ class ImageTest extends ImageTestCase
 	public function testLoad()
 	{
 		$im = Image::load(self::$testImageLandscape, static::$lib);
-		$this->assertInstanceOf('merik\Image\Image', $im);
-		$this->assertEquals('merik\Image\Image' . static::$lib, get_class($im));
+		$this->assertInstanceOf('PHPImage\Image', $im);
+		$this->assertEquals('PHPImage\Image' . static::$lib, get_class($im));
 	}
 
 	public function testLoadString()
@@ -49,15 +50,15 @@ class ImageTest extends ImageTestCase
 		$im = Image::create(800, 600, '#FF0000', static::$lib);
 
 		// image
-		$this->assertInstanceOf('merik\Image\Image', $im);
-		$this->assertEquals('merik\Image\Image' . static::$lib, get_class($im));
+		$this->assertInstanceOf('PHPImage\Image', $im);
+		$this->assertEquals('PHPImage\Image' . static::$lib, get_class($im));
 		$this->assertTrue(testIsResource($im->getResource()));
 		$this->assertEquals([800, 600], $im->getDimensions());
 
 		// image original
 		$orig = $im->getImageOriginal();
-		$this->assertInstanceOf('merik\Image\Image', $orig);
-		$this->assertEquals('merik\Image\Image' . static::$lib, get_class($orig));
+		$this->assertInstanceOf('PHPImage\Image', $orig);
+		$this->assertEquals('PHPImage\Image' . static::$lib, get_class($orig));
 		$this->assertTrue(testIsResource($orig->getResource()));
 		$this->assertEquals([800, 600], $orig->getDimensions());
 	}
