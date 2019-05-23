@@ -26,7 +26,7 @@ abstract class BaseImage
 	abstract protected function destroyResource($resource): void;
 	abstract protected function pingImage($image): void;
 	abstract protected function saveImage($filename, $quality, $mimeType): bool;
-	abstract protected function outputImage($mimeType, $quality): void;
+	abstract protected function outputImage($quality, $mimeType): void;
 	abstract protected function resizeImage($width, $height): void;
 	abstract protected function cropImage($startX, $startY, $width, $height): void;
 	abstract protected function rotateImage($angle, $bgColor): void;
@@ -244,17 +244,17 @@ abstract class BaseImage
 
 	/**
 	 * Outputs image without saving
-	 * @param string $imageType 
 	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $imageType 
 	 * @throws Exception
 	 */
-	public function output($imageType = NULL, $quality = NULL)
+	public function output($quality = 75, $imageType = NULL)
 	{		
 		// mime-type
 		$mimeType = !empty($imageType) ? $imageType : $this->mime_type;
 		
 		header('Content-Type: ' . $mimeType);
-		$this->outputImage($mimeType, $quality);
+		$this->outputImage($quality, $mimeType);
 		$this->destroy();
 	}
 	

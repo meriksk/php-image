@@ -4,19 +4,7 @@ PHP-Image Library
 [![Latest Stable Version](http://img.shields.io/github/release/meriksk/php-image.svg)](https://packagist.org/packages/meriksk/php-image)
 [![License](https://poser.pugx.org/meriksk/php-image/license)](https://packagist.org/packages/meriksk/php-image)
 
-> A perceptual hash is a fingerprint of a multimedia file derived from various features from its content. Unlike cryptographic hash functions which rely on the avalanche effect of small changes in input leading to drastic changes in the output, perceptual hashes are "close" to one another if the features are similar.
-
-PHP-Image Library
-
-PHP image handling and manipulation library with support for both GD and Imagick extensions.
-
-It can send HTTP requests to a Bitcoin peer server to perform several operations.
-
-Currently it can get transaction details, get peer information, get mining information, get network hashes, get block chains, etc..
-
-## Installation
-
-You may install this library through Composer. You can also view more info about this on [Packagist].
+> The Image class offers a bunch of image processing features using GD or IMagick.
 
 ## Requirements
 
@@ -27,21 +15,26 @@ You may install this library through Composer. You can also view more info about
 - GD Library (>=2.0)
 - Imagick PHP extension (>=6.5.7)
 
-## Getting started
+------------------
+
+## Setup
+
+The preferred way to install this extension is through [Composer](https://getcomposer.org/).
+If you do not have [Composer](https://getcomposer.org/), you may install it by following the instructions at [getcomposer.org](https://getcomposer.org/).
+
+Either run
 
 ```
 composer require meriksk/php-image
 ```
 
-or add "meriksk/php-image":"~1.0" to your composer.json and run composer update
+or add 
 
-```json
-{
-    "require": {
-        "meriksk/php-image": "1.*"
-    }
-}
 ```
+"meriksk/php-image": "~1.0" 
+```
+
+to your composer.json and run composer update
 
 ## Usage
 
@@ -51,82 +44,103 @@ or add "meriksk/php-image":"~1.0" to your composer.json and run composer update
 Open image
 ----------
 
-Create instance of image:
+Because this class uses namespacing, when instantiating the object, you need to either use the fully qualified namespace:
 
 ```php
-$image = \merik\Image\Image::load($pathToImage);
+$image = new \meriksk\Image\Image($filename);
 ```
 
-or add to top of your file:
+or alias it:
 
 ```php 
-use merik\Image\Image;
+use meriksk\Image\Image;
+
+$image = new Image($filename);
 ```
 
-and then load image:
+This class can use Imagick or GD extension - whichever is available.
+Imagick extension is preferred if is available. You can force the extension for manipulating images as follows:
 
 ```php
-$image = Image::load($pathToImage);
+$image = new Image($filename, Image::DRIVER_GD);
 ```
 
-Factory incapsulates instantiating of all image objects and allow to confirure created images:
-
-```php
-$factory = new \merik\Image\ImageFactory;
-```
-
-Opening from filename:
-
-```php
-$factory->openImage('/path/to/image.jpeg');
-```
-
-Opening from GD resource:
-
-```php
-$factory->openImage($imageResource);
-```
-
-Creating new image:
-```
-$image = $factory->createImage(300, 200);
-```
-
-Resize image
-------------
-
-There is four resize modes: 'scale', 'fit', 'crop' and 'cache'.
-
-```php
-$newImage = $factory->resizeImage($image, $mode, $width, $height);
-```
-
-If you want to register own resize strategy, extend class from \Sokil\Image\AbstractResizeStrategy and add namespase:
-```php
-// through factory constructor
-$factory = new \Sokil\Image\Factory([
-    'namespace' => [
-        'resize' => '\Vendor\ResizeStrategy',
-    ],
-]);
-// through factory method
-$factory->addResizeStrategyNamespace('\Vendor\ResizeStrategy');
-// directly to image
-$image->addResizeStrategyNamespace('\Vendor\ResizeStrategy');
-```
-Classes searches in priority of adding.
-
-Crop image
+Save image
 ----------
 
-To get part of image by specified wifth and height and in defined coordinates use:
-```php
-$x = 10;
-$y = 10;
-$width = 20;
-$height = 20;
+Library supports three formats of image: 'jpeg', 'png' and 'gif'. By default they quality is set to 75. When saving to disk or outputting into the browser, the script assumes the same output type and quality as input.
 
-$image->crop($x, $y, $width, $height);
+```php
+$image->save($filename);
+```
+
+Save in a different type to the source:
+
+```php
+$image->save($filename, 60, 'png');
+```
+
+Output image
+----------
+
+To render the image directly into the browser, you can call:
+
+```php
+$image->output(60, 'png');
+```
+
+Resize
+------------
+
+**resize**
+
+```php
+$image = $image->resize($width, $height, $allow_enlarge);
+```
+
+**resize to width**
+
+```php
+$image = $image->resizeToWidth($width, $allow_enlarge);
+```
+
+**resize to height**
+
+```php
+$image = $image->resizeToHeight($height, $allow_enlarge);
+```
+
+**resize to best fit**
+
+```php
+$image = $image->resizeToBestFit($max_width, $max_height, $allow_enlarge);
+```
+
+**resize to long side**
+
+```php
+$image = $image->resizeToLongSide($max_width, $max_height, $allow_enlarge);
+```
+
+**resize to short side**
+
+```php
+$image = $image->resizeToShortSide($max_width, $max_height, $allow_enlarge);
+```
+
+
+Crop
+----------
+
+```php
+$image->crop($width, $height, $width, Image::::CROP_CENTER, $allow_enlarge);
+```
+
+Thumbnail
+----------
+
+```php
+$image->thumbnail($width, $height, $width, $allow_enlarge);
 ```
 
 Rotate image
@@ -135,164 +149,39 @@ Rotate image
 Rotating is counter clockwise;
 
 Rotate on 90 degrees:
+
 ```php
 $image->rotate(90);
 ```
 
-Rotate on 45 degrees, and fill empty field with black color:
-```php
-$image->rotate(45, '#000000');
-```
+Rotate on 45 degrees, and fill empty field with white color:
 
-Rotate on 45 degrees, and fill empty field with transparent green color:
 ```php
-$image->rotate(45, '#8000FF00');
+$image->rotate(45, '#FFFFFF');
 ```
 
 Flip image
 ----------
 
 Flip in vertical direction:
+
 ```php
-$image->flipVertical();
+$image->flip();
 ```
 
-Flip in horisontal direction
+Flip in horisontal direction:
+
 ```php
-$image->flipHorisontal();
+$image->flip(Image::FLIP_HORIZONTAL);
 ```
 
-Flip in both directions
+Flip in both directions:
+
 ```php
-$image->flipBoth();
+$image->flip(Image::FLIP_BOTH);
 ```
 
 Filters
 -------
 
-Greyscale image:
-```php
-$factory->filterImage($image, 'greyscale');
-```
-
-If you want to register own filter strategy to support new filters, extend class from \Sokil\Image\AbstractFilterStrategy and add namespase:
-```php
-// through factory constructor
-$factory = new \Sokil\Image\Factory([
-    'namespace' => [
-        'filter' => '\Vendor\FilterStrategy',
-    ],
-]);
-// through factory method
-$factory->addFilterStrategyNamespace('\Vendor\FilterStrategy');
-// or directly to image
-$image->addFilterStrategyNamespace('\Vendor\FilterStrategy');
-```
-Classes searches in priority of adding.
-
-Image elements
---------------
-
-### Adding elements to image
-
-Element is everything that can me append to image: text, shape, other image. First we need to create element instabce and configure it:
-```php
-$someElement = $factory->createElement('someElement')->setParam1('someValue');
-```
-
-Than element placed to image to some coordinates:
-```php
-$image->appendElementAtPosition($someElement, 30, 30);
-```
-
-You can create your own elements that inherits \Sokil\Image\AbstractElement class, and register namespace:
-```php
-namespace Vendor\Elements;
-
-class Circle extends \Sokil\Image\AbstractElement
-{
-    public function setRadius($r) { // code to set radius }
-    
-    public function draw($resource, $x, $y) 
-    {
-        // code to draw circle on image $resouce at coordinates ($x, $y)
-    }
-}
-
-// through factory constructor
-$factory = new \Sokil\Image\Factory([
-    'namespace' => [
-        'element' => '\Vendor\Element',
-    ],
-]);
-// through factory method
-$factory->addElementNamespace('\Vendor\Elements');
-```
-
-Now you can draw your own circles:
-```php
-$circle = $factory->createElement('circle')->setRadiud(100);
-$image->appendElementAtPosition($circle, 100, 100);
-```
-
-### Writing text
-
-To create text element you can use one of methods: 
-```php
-$textElement = $factory->createElement('text');
-// or through helper 
-$textElement = $factory->createTextElement();
-```
-
-First we need to configure text element:
-```php
-$factory = new \Sokil\Image\Factory();
-        
-// text element
-$element = $factory
-    ->createTextElement()
-    ->setText('hello world')
-    ->setAngle(20)
-    ->setSize(40)
-    ->setColor('#ababab')
-    ->setFont(__DIR__ . '/FreeSerif.ttf');
-```
-
-Now we need to place element in image at some coordinates:
-```php
-$image->appendElementAtPosition($element, 50, 150);
-```
-
-Save image
-----------
-
-Library supports three formats of image: 'jpeg', 'png' and 'gif'. 
-
-To write image to disk you must define format of image and configure write strategy:
-```php
-$factory->writeImage($image, 'jpeg', function(\Sokil\Image\WriteStrategy\JpegWriteStrategy $strategy) {
-    $strategy->setQuality(98)->toFile('/path/to/file.jpg');
-});
-```
-
-To send image to STDOUT you must define format of image and configure write strategy:
-```php
-$factory->writeImage($image, 'jpeg', function(\Sokil\Image\WriteStrategy\JpegWriteStrategy $strategy) {
-    $strategy->setQuality(98)->toStdout();
-});
-```
-
-If you want to register own write strategy to support new image format, extend class from \Sokil\Image\AbstractWriteStrategy and add namespase:
-```php
-// through factory constructor
-$factory = new \Sokil\Image\Factory([
-    'namespace' => [
-        'write' => '\Vendor\WriteStrategy',
-    ],
-]);
-// through factory method
-$factory->addWriteStrategyNamespace('\Vendor\WriteStrategy');
-// or directly to image
-$image->addWriteStrategyNamespace('\Vendor\WriteStrategy');
-```
-Classes searches in priority of adding.
+todo

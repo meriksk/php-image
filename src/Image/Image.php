@@ -279,13 +279,13 @@ class Image
 	
 	/**
 	 * Outputs image without saving
-	 * @param string $imageType If omitted or null - image type of original file will be used
 	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $imageType If omitted or null - image type of original file will be used
 	 * @throws Exception
 	 */
-	public function output($imageType = NULL, $quality = NULL)
+	public function output($quality = NULL, $imageType = NULL)
 	{
-		$this->driver->output($imageType, $quality);
+		$this->driver->output($quality, $imageType);
 	}
 
 	/**

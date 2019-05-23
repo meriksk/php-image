@@ -9,7 +9,7 @@ use meriksk\Image\Image;
 /**
  * DriverImagick class file. 
  */
-class DriverImagick extends Driver
+class ImageImagick extends Driver
 {
 
 	/**
