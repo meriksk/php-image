@@ -1,17 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php"
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	colors="true"
 	backupGlobals="false"
 	backupStaticAttributes="false"
-	colors="true"
-	convertErrorsToExceptions="false"
-	convertNoticesToExceptions="false"
-	convertWarningsToExceptions="false"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
 	processIsolation="false"
-	stopOnFailure="true"
-	syntaxCheck="false">
-	<testsuites>
-		<testsuite name="Package Test Suite">
-			<directory suffix=".php">./tests/</directory>
-		</testsuite>
-	</testsuites>
+	stopOnFailure="true">
+    <testsuites>
+        <testsuite name="All">
+            <directory suffix="Test.php">./tests</directory>
+        </testsuite>
+        <testsuite name="Gd">
+            <file>./tests/GdTest.php</file>
+        </testsuite>
+        <testsuite name="Imagick">
+            <file>./tests/ImagickTest.php</file>
+        </testsuite>
+    </testsuites>
 </phpunit>

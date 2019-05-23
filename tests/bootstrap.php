@@ -46,11 +46,3 @@ function cleanDirectory($directory) {
 		}
 	}
 }
-
-function testIsResource($resource) {
-	return $resource && (
-		(is_resource($resource) && 'gd'===get_resource_type($resource))
-		||
-		(is_object($resource) && 'Imagick'===get_class($resource))
-	);
-}

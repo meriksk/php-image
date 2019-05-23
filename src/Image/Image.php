@@ -1,12 +1,11 @@
 <?php
 
-namespace merik\Image;
+namespace meriksk\Image;
 
 use DateTime;
 use DateTimeZone;
 use Exception;
-use InvalidArgumentException;
-use merik\Image\ImageFactory;
+use meriksk\Image\ImageFactory;
 
 /**
  * Image class file
@@ -18,13 +17,20 @@ class Image
      * Constant for the (deprecated) transparent color
      */
     const COLOR_TRANSPARENT = -1;
+    const COLOR_WHITE = 'FFFFFF';
 
-	/**
-	 * @var int
-	 */
-	const FLIP_HORIZONTAL = 1;
-	const FLIP_VERTICAL = 2;
-	const FLIP_BOTH = 3;
+	const DRIVER_GD = 'Gd';
+	const DRIVER_IMAGICK = 'Imagick';
+	
+    const CROP_TOP = 1;
+    const CROP_CENTER = 2;
+    const CROP_BOTTOM = 3;
+    const CROP_LEFT = 4;
+    const CROP_RIGHT = 5;
+
+	const FLIP_HORIZONTAL = 'horizontal';
+	const FLIP_VERTICAL = 'vertical';
+	const FLIP_BOTH = 'both';
 
 
 
@@ -33,98 +39,36 @@ class Image
 	 */
 	public static $allowUpscale = false;
 
-	/**
-	 * @var string
-	 */
-	protected $path;
+	public $driver;
 
 	/**
-	 * @var string
+	 * Class constructor
+	 * @param string $filename
+	 * @param string $lib
+	 * @throws Exception
 	 */
-	protected $pathOriginal;
+	public function __construct($filename = NULL, $lib = NULL)
+	{
+		// init driver
+		$this->driver = DriverFactory::get($lib);
 
-	/**
-	 * @var resource
-	 */
-	protected $resource;
+		// load image
+		if ($filename !== null) {
+			$this->driver->load($filename);
+		}
 
-	/**
-	 * @var Image Original image instance
-	 */
-	protected $imageOriginal;
-
-	/**
-	 * @var string
-	 */
-	protected $imageString;
-
-	/**
-	 * @var int
-	 */
-	protected $width;
-
-	/**
-	 * @var int
-	 */
-	protected $height;
-
-	/**
-	 * @var string Image orientation
-	 */
-	protected $orientation;
-
-	/**
-	 * @var string File MIME type
-	 */
-	protected $mimeType;
-
-	/**
-	 * @var string File extension
-	 */
-	protected $extension;
-
-	/**
-	 * @var array
-	 */
-	protected $info = [];
-
-	/**
-	 * @var int
-	 */
-	protected $quality = 82;
-
-	/**
-	 * Image EXIF data
-	 * @var array
-	 */
-	protected $exifData;
-
-	/**
-	 * The date and time when the original image data was generated.
-	 * @var int
-	 */
-	protected $dateCreated;
-
-	/**
-	 * @var array Watermark configuration
-	 */
-	protected static $watermark;
-
-	/**
-	 * @var bool
-	 */
-	protected static $debug = false;
-
+		// https://github.com/gumlet/php-image-resize/blob/master/lib/ImageResize.php
+	}
 
 	/**
 	 * Load an image
 	 * @param string $lib
-	 * @return Image instance
+	 * @return static
 	 * @throws Exception
 	 */
 	public static function getInstance($lib = NULL)
 	{
-		return ImageFactory::get($lib);
+		return new Image(null, $lib);
 	}
 
 	/**
@@ -132,153 +76,103 @@ class Image
 	 */
 	public function __destruct()
 	{
-		$this->debug("__destruct()\t\tcalling -> destroy()");
+		//$this->debug("__destruct()\t\tcalling -> destroy()");
 
 		// working image
-		$this->destroy();
+		//$this->destroy();
 	}
 
 	/**
-	 * Returns library used by script
+	 * Returns driver used by script
 	 * @return string
 	 */
-	public function getLib()
+	public function getDriver(): string
 	{
-		if (strpos(get_class($this), 'ImageGd')!==false) {
-			return ImageFactory::LIB_GD;
+		if (strpos(get_class($this->driver), 'DriverGd')!==false) {
+			return self::DRIVER_GD;
 		} else {
-			return ImageFactory::LIB_IMAGICK;
+			return self::DRIVER_IMAGICK;
 		}
 	}
 
 	/**
 	 * Load an image
 	 * @param string $path Path to image file
-	 * @param string $lib
-	 * @return Image instance
+	 * @return static
 	 * @throws Exception
 	 */
-	public static function load($path, $lib = NULL)
+	public function load($path)
 	{
-		if (!file_exists($path)) {
-			throw new Exception('Image is not readable or does not exist.');
-		}
+		$this->driver->load($path);
+		return $this;
+	}
 
-		$image = ImageFactory::get($lib);
-		$image->loadImage($path);
-
+	/**
+	 * Load a string as image
+	 * @param string $data Image data
+	 * @param string $lib
+	 * @return static
+	 * @throws Exception
+	 */
+	public static function loadFromString($data, $lib = NULL)
+	{
+		$image = new Image(null, $lib);
+		$image->driver->loadFromString($data);
 		return $image;
 	}
 
 	/**
 	 * Load a string as image
-	 * @param string $string base64 string
+	 * @param string $data Image Base64 data
 	 * @param string $lib
-	 * @return Image instance
+	 * @return static
 	 * @throws Exception
 	 */
-	public static function loadString($string, $lib = NULL)
+	public static function loadFromBase64String($data, $lib = NULL)
 	{
-		if (!is_string($string)) {
-			throw new InvalidArgumentException('Invalid image data.');
-		}
-
-		if (!function_exists('getimagesizefromstring')) {
-			throw new Exception('Required function "getimagesizefromstring()" does not exists.');
-		}
-
-		$image = ImageFactory::get($lib);
-		$image->loadImage($string, true);
-
+		$image = new Image(null, $lib);
+		$image->driver->loadFromBase64String($data);
 		return $image;
 	}
 
 	/**
-	 * Load a base64 string as image
-	 * @param string $base64string base64 string
+	 * Fetch basic attributes about the image.
+	 * @param string $filename The filename to read the information from.
 	 * @param string $lib
-	 * @return Image instance
+	 * @return $array
 	 * @throws Exception
 	 */
-	public static function loadBase64($base64string, $lib = NULL)
+	public function ping($filename): array
 	{
-		if (!is_string($string)) {
-
-		}
-
-		$string = base64_decode(str_replace(' ', '+',preg_replace('#^data:image/[^;]+;base64,#', '', $base64string)));
-
-		if (!function_exists('getimagesizefromstring')) {
-			throw new Exception('Required function "getimagesizefromstring()" does not exists.');
-		}
-
-		$image = ImageFactory::get($lib);
-		$image->loadImage($string, true);
-
-		return $image;
+		return $this->driver->ping($filename);
 	}
 
 	/**
-	 * Create an image from scratch
-	 * @param int $width  Image width
-	 * @param int|null $height If omitted - assumed equal to $width
-	 * @param null|string $color Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Where red, green, blue - integers 0-255, alpha - integer 0-127
-	 * @param string $lib
-	 * @return Image instance
+	 * Get image info
+	 * @return array
 	 */
-	public static function create($width, $height = NULL, $color = NULL, $lib = NULL)
+	public function getInfo(): array
 	{
-		return ImageFactory::get($lib)->createImage($width, $height, $color);
-	}
-
-	/**
-	 * Revert an image
-	 * @return Image instance
-	 */
-	public function revert()
-	{
-		if (!empty($this->imageOriginal->resource) && $this->imageOriginal->isResource()) {
-
-			$this->debug("revert()\t\tcalling -> revertImage()");
-			$this->revertImage();
-			$this->debug("revertImage()\t\tcalling -> readMetaData()");
-			$this->readMetaData();
-		}
-
-		return $this;
+		return $this->driver->getInfo();
 	}
 
 	/**
 	 * Destroy image resources
-	 * @param resource $image
-	 * @return Image instance
+	 * @return static
 	 */
 	public function destroy()
 	{
-		$this->debug("destroy()\t\tcalling -> destroyResource()");
+		$this->driver->destroy();
+		return $this;
+	}
 
-		$this->width = 0;
-		$this->height = 0;
-		$this->path = NULL;
-		$this->extension = NULL;
-		$this->orientation = NULL;
-		$this->exifData = NULL;
-		$this->mimeType = NULL;
-		$this->path = NULL;
-		$this->dateCreated = NULL;
-
-		// resources
-		if ($this->isResource()) {
-			$this->destroyResource($this->resource);
-		}
-		if ($this->imageOriginal && $this->imageOriginal->isResource()) {
-			$this->imageOriginal->destroyResource();
-		}
-
-		// references
-		$this->imageOriginal = NULL;
-
+	/**
+	 * Revert an image
+	 * @return static
+	 */
+	public function revert(): Image
+	{
+		$this->driver->revert();
 		return $this;
 	}
 
@@ -288,43 +182,7 @@ class Image
 	 */
 	public function getResource()
 	{
-		return $this->resource;
-	}
-
-	/**
-	 * Returns instance of original image
-	 * @return Image
-	 */
-	public function getImageOriginal()
-	{
-		return $this->imageOriginal;
-	}
-
-	/**
-	 * Returns original image resource
-	 * @return resource
-	 */
-	public function getImageOriginalResource()
-	{
-		return !empty($this->imageOriginal) ? $this->imageOriginal->getResource() : NULL;
-	}
-
-	/**
-	 * Get image info
-	 * @return array
-	 */
-	public function getInfo()
-	{
-		return [
-			'path' => $this->path,
-			'filename' => !empty($this->path) ? basename($this->path) : NULL,
-			'width' => $this->width,
-			'height' => $this->height,
-			'orientation' => $this->orientation,
-			'extension' => $this->extension,
-			'mimeType' => $this->mimeType,
-			'dateCreated' => $this->dateCreated,
-		];
+		return $this->driver->resource;
 	}
 
 	/**
@@ -333,16 +191,16 @@ class Image
 	 */
 	public function getPath()
 	{
-		return $this->path;
+		return $this->driver->path;
 	}
 
 	/**
 	 * Returns image dimensions
 	 * @return array
 	 */
-	public function getDimensions()
+	public function getDimensions(): array
 	{
-		return [$this->width, $this->height];
+		return [$this->driver->w, $this->driver->h];
 	}
 
 	/**
@@ -351,7 +209,7 @@ class Image
 	 */
 	public function getWidth()
 	{
-		return $this->width;
+		return $this->driver->w;
 	}
 
 	/**
@@ -360,17 +218,215 @@ class Image
 	 */
 	public function getHeight()
 	{
-		return $this->height;
+		return $this->driver->h;
+	}
+
+	/**
+	 * Returns the MIME content type
+	 * @return string
+	 */
+	public function getMimeType()
+	{
+		return $this->driver->mime_type;
 	}
 
 	/**
 	 * Returns image extension
+	 * @param bool $withDot
 	 * @return string
 	 */
-	public function getExtension()
+	public function getExtension($withDot = false)
 	{
-		return $this->extension;
+		return $this->driver->extension ? ($withDot===true ? '.' : '') . $this->driver->extension : null;
 	}
+	
+	/**
+	 * Get image orientation
+	 * @param NULL|int $width
+	 * @param NULL|int $height
+	 * @return null|string
+	 */
+	public function getOrientation()
+	{
+		if ($this->driver->resource) {
+			$w = $this->driver->w;
+			$h = $this->driver->h;
+
+			if ($w > $h) {
+				return 'landscape';
+			} elseif ($w < $h) {
+				return 'portrait';
+			} else {
+				return 'square';
+			}
+		}
+		
+		return null;
+	}
+
+	/**
+	 * Save an image. The resulting format will be determined by the file extension.
+	 * @param string $filename If omitted - original file will be overwritten
+	 * @param int $quality	Output image quality in percents 0-100
+	 * @param string $imageType The image type to use; determined by file extension if null
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function save($filename = NULL, $quality = NULL, $imageType = NULL): bool
+	{
+		return $this->driver->save($filename, $quality, $imageType);
+	}
+	
+	/**
+	 * Outputs image without saving
+	 * @param string $imageType If omitted or null - image type of original file will be used
+	 * @param int $quality Output image quality in percents 0-100
+	 * @throws Exception
+	 */
+	public function output($imageType = NULL, $quality = NULL)
+	{
+		$this->driver->output($imageType, $quality);
+	}
+
+	/**
+	 * Resize an image to the specified dimensions
+	 * @param int|array $width Desired width - number or array [w, h]
+	 * @param int|null $height Desired height, if omitted - assumed equal to $width
+	 * @param bool $allowEnlarge
+	 * @return static
+	 */
+	public function resize($width, $height, bool $allowEnlarge = false): Image
+	{
+		$this->driver->resize($width, $height, $allowEnlarge);
+		return $this;
+	}
+
+    /**
+     * Resizes image according to the given width (height proportional)
+     * @param int $width
+     * @param bool $allowEnlarge
+     * @return static
+     */
+    public function resizeToWidth($width, bool $allowEnlarge = false): Image
+    {
+		$this->driver->resizeToWidth($width, $allowEnlarge);
+        return $this;
+    }
+
+    /**
+     * Resizes image according to the given height (width proportional)
+     * @param int $height
+     * @param bool $allowEnlarge
+     * @return static
+     */
+    public function resizeToHeight($height, bool $allowEnlarge = false): Image
+    {
+		$this->driver->resizeToHeight($height, $allowEnlarge);
+        return $this;
+    }
+
+    /**
+     * Resizes image according to the given short side (long side proportional)
+     * @param int $max
+     * @param bool $allowEnlarge
+     * @return static
+     */
+    public function resizeToShortSide($max, $allowEnlarge = false): Image
+    {
+        $this->driver->resizeToShortSide($max, $allowEnlarge);
+        return $this;
+    }
+
+    /**
+     * Resizes image according to the given long side (short side proportional)
+     * @param int $max
+     * @param bool $allowEnlarge
+     * @return static
+     */
+    public function resizeToLongSide($max, $allowEnlarge = false): Image
+    {
+        $this->driver->resizeToLongSide($max, $allowEnlarge);
+        return $this;
+    }
+
+    /**
+     * Resizes image to best fit inside the given dimensions
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @param bool $allowEnlarge
+     * @return static
+     */
+    public function resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge = false)
+    {
+        $this->driver->resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge);
+		return $this;
+    }
+
+	/**
+	 * Crops image according to the given width, height and crop position.
+	 * This will scale the image to as close as it can to the passed dimensions, 
+	 * and then crop and center the rest.
+	 * @param int $width
+	 * @param int $height
+	 * @param int $position
+	 * @param bool $allowEnlarge
+	 * @return static
+	 */
+	public function crop($width, $height, $position = self::CROP_CENTER, $allowEnlarge = false): Image
+	{
+		$this->driver->crop($width, $height, $position, $allowEnlarge);
+		return $this;
+	}
+
+	/**
+	 * Extracts a region of the image.
+	 * @param int $width
+	 * @param int $height
+	 * @param bool $allowEnlarge
+	 * @return static
+	 */
+	public function thumbnail($width, $height, $allowEnlarge = false): Image
+	{
+		$this->driver->thumbnail($width, $height, $allowEnlarge);
+		return $this;
+	}
+
+	/**
+	 * Rotates an image.
+	 * @param int $angle Rotation angle in degrees. Supports negative values.
+	 * @param mixed $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
+	 * Transparent by default.
+	 * @return static
+	 */
+	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT): Image
+	{
+		$this->driver->rotate($angle, $bgColor);
+		return $this;
+	}
+
+	/**
+	 * Flips an image using a given mode
+	 * @param int|string $mode
+	 * @return static
+	 */
+	public function flip($mode = self::FLIP_VERTICAL)
+	{
+		$this->driver->flip($mode);
+		return $this;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	/**
 	 * Returns image date of creation
@@ -380,123 +436,6 @@ class Image
 	public function getDateCreated($format = NULL)
 	{
 		return $this->dateCreated;
-	}
-
-	/**
-	 * Refresh image
-	 * @return Image instance
-	 */
-	public function refresh()
-	{
-		$this->readMetaData();
-		return $this;
-	}
-
-	/**
-	 * Outputs a message to the console.
-	 * @param string $msg Message
-	 * @param bool $newLine If true, new line character will sent to the output
-	 * @param bool $inline
-	 */
-	protected function debug($msg, $newLine = TRUE, $inline = FALSE)
-	{
-		if (self::$debug === true) {
-			consoleLog($msg, $newLine, $inline);
-		}
-	}
-
-	/**
-	 * Fetch basic attributes about the image.
-	 * @param string $path The filename to read the information from.
-	 * @return $array
-	 * @throws Exception
-	 */
-	public function ping($path)
-	{
-		$this->debug("ping()\t\t\tcalling -> pingImage(..". basename($path) . ")");
-		return $this->pingImage($path);
-	}
-
-	/**
-	 * Updates meta data of image
-	 * @return array
-	 */
-	public function readMetaData()
-	{
-		$info = NULL;
-
-		if ($this->isResource()) {
-
-			$this->debug("readMetaData()\t\tcalling -> readImageMetaData()");
-			$this->readImageMetaData();
-			$info = $this->getInfo();
-			$this->debug("readImageMetaData()\timage size: {$this->width} x {$this->height}, orientation: {$info['orientation']}");
-		}
-
-		return $info;
-	}
-
-	/**
-	 * Is an image a valid image resource?
-	 * @param resource $image
-	 * @return bool
-	 */
-	public function isResource($image = NULL)
-	{
-		if ($image === NULL) {
-			$image = $this->resource;
-		}
-
-		if ($this->getLib() === ImageFactory::LIB_GD) {
-			return (is_resource($image) && 'gd'===get_resource_type($image));
-		} else {
-			return !empty($image) && 'Imagick'===get_class($image);
-		}
-	}
-
-	/**
-	 * Save an image. The resulting format will be determined by the file extension.
-	 * @param null|string $path If omitted - original file will be overwritten
-	 * @param null|int $quality	Output image quality in percents 0-100
-	 * @param null|string $format The format to use; determined by file extension if null
-	 * @return Image instance
-	 * @throws Exception
-	 */
-	public function save($path = NULL, $quality = NULL, $format = NULL)
-	{
-		// Determine quality, path, and format
-		$quality = ($quality > 0 && $quality <= 100) ? (int)$quality : $this->quality;
-		$path = !empty($path) ? $path : $this->path;
-
-		if (!$format) {
-			$ext = $this->getExtensionFromPath($path);
-			$format = $ext ? $ext : $this->extension;
-		}
-
-		$this->debug("save()\t\t\tquality: $quality, format: $format, path: .." . basename($path));
-		$this->debug("save()\t\t\tcalling -> saveImage()");
-
-		return $this->saveImage($path, $quality, $format);
-	}
-
-	/**
-	 * Get image orientation
-	 * @param NULL|int $width
-	 * @param NULL|int $height
-	 * @return int|string
-	 */
-	public function getOrientation($width = NULL, $height = NULL)
-	{
-		$w = $width>0 ? (int)$width : $this->width;
-		$h = $height>0 ? (int)$height : $this->height;
-
-		if ($w > $h) {
-			return 'landscape';
-		} elseif ($w < $h) {
-			return 'portrait';
-		} else {
-			return 'square';
-		}
 	}
 
 	/**
@@ -668,299 +607,6 @@ class Image
 	}
 
 	/**
-	 * Upscale check
-	 * @param int $width
-	 * @param int $height
-	 * @return array
-	 */
-	public function upscaleCheck($width, $height)
-	{
-		// if upscale allowed or if it already fits, there's nothing to do
-		if (self::$allowUpscale === true || ($width <= $this->width && $height <= $this->height)) {
-			return [$width, $height];
-		}
-
-		// check width
-		if ($width > $this->width) {
-			$width = $this->width;
-		}
-
-		// check height
-		if ($height > $this->height) {
-			$height = $this->height;
-		}
-
-		return [$width, $height];
-	}
-
-	/**
-	 * Fit to width (proportionally resize to specified width)
-	 * @param int $width
-	 * @return Image instance
-	 */
-	public function fitToWidth($width)
-	{
-		// calculate aspect ratio
-		$aspectRatio = $this->height / $this->width;
-
-		$height = round($width * $aspectRatio);
-		$this->debug("fitToWidth($width)\t\tcalling -> resize($width, $height)");
-		$this->resize($width, $height);
-
-		return $this;
-	}
-
-	/**
-	 * Fit to height (proportionally resize to specified height)
-	 * @param int $height
-	 * @return Image instance
-	 */
-	public function fitToHeight($height)
-	{
-		// calculate aspect ratio
-		$aspectRatio = $this->height / $this->width;
-
-		$width = round($height / $aspectRatio);
-		$this->debug("fitToHeight($height)\tcalling -> resize($width, $height)");
-		$this->resize($width, $height);
-
-		return $this;
-	}
-
-	/**
-	 * Resize an image to the specified dimensions
-	 * @param int|array $width Desired width - number or array [w, h]
-	 * @param int|null $height Desired height, if omitted - assumed equal to $width
-	 * @return Image instance
-	 */
-	public function resize($width, $height = NULL)
-	{
-		// support array definition
-		if (is_array($width) && isset($width[0]) && isset($width[1])) {
-			$height = $width[1];
-			$width = $width[0];
-		}
-
-		$w = $width > 0 ? (int)$width : 300;
-		$h = $height > 0 ? (int)$height : $w;
-
-		// upscale check
-		list ($w, $h) = $this->upscaleCheck($w, $h);
-
-		$this->debug("resize($width, $height)\tcalling -> resizeImage($w, $h)");
-		$this->resizeImage($w, $h);
-		$this->debug("resizeImage($w, $h)\tcalling -> readMetaData()");
-		$this->readMetaData();
-
-		return $this;
-	}
-
-	/**
-	 * Best fit (proportionally resize to fit in specified width/height)
-	 * Shrink the image proportionally to fit inside a $width x $height box
-	 * @param int $width
-	 * @param int|null $height
-	 * @return Image
-	 */
-	public function bestFit($width, $height = NULL)
-	{
-		// max width & height
-		$w = $width > 0 ? (int)$width : 300;
-		$h = $height > 0 ? (int)$height : $w;
-
-		// if it already fits, there's nothing to do
-		if ($this->width <= $w && $this->height <= $h) {
-			return $this;
-		}
-
-		// determine aspect ratio of the current image
-		$aspectRatio = $this->height / $this->width;
-
-		// Make width fit into new dimensions
-		if ($this->width > $w) {
-			$newWidth = $w;
-			$newHeight = round($w * $aspectRatio);
-		} else {
-			$newWidth = $this->width;
-			$newHeight = $this->height;
-		}
-
-		// Make height fit into new dimensions
-		if ($newHeight > $h) {
-			$newHeight = $h;
-			$newWidth = round($newHeight / $aspectRatio);
-		}
-
-		$this->debug("bestFit($width, $height)\tcalling -> resize($newWidth, $newHeight)");
-		$this->resize($newWidth, $newHeight);
-
-		return $this;
-	}
-
-	/**
-	 * Thumbnail
-	 * This function attempts to get the image to as close to the provided dimensions as possible, and then crops the
-	 * remaining overflow (from the center) to get the image to be the size specified.
-	 *
-	 * @param int|array $width Desired width - number or array [w, h]
-	 * @param int|null $height Desired height, if omitted - assumed equal to $width
-	 * @param bool $shrink
-	 * @return Image instance
-	 * @throws Exception
-	 */
-	public function thumbnail($width, $height = NULL, $shrink = FALSE)
-	{
-		// support array definition
-		if (is_array($width) && isset($width[0]) && isset($width[1])) {
-			$shrink = ($height===true);
-			$height = $width[1];
-			$width = $width[0];
-		}
-
-		$this->debug("thumbnail($width, $height, ". ($shrink===true?'true': 'false') . ")");
-		$desiredWidth = $width > 0 ? (int)$width : 300;
-		$desiredHeight = $height > 0 ? (int)$height : $desiredWidth;
-
-		// determine aspect ratios
-		$aspectRatioBefore = $this->width / $this->height;
-		$aspectRatioAfter = $desiredWidth / $desiredHeight;
-
-		$cropWidth = 0;
-		$cropHeight = 0;
-
-		if ($shrink === true) {
-
-			list ($w, $h) = $this->upscaleCheck($desiredWidth, $desiredHeight);
-
-			//var_dump($this->getDimensions());
-			//var_dump([$w, $h]);
-
-			// landscape
-			if ($aspectRatioBefore > $aspectRatioAfter) {
-				$this->fitToWidth($w);
-			// portrait
-			} else {
-				$this->fitToHeight($h);
-			}
-
-			$cropWidth = $desiredWidth;
-			$cropHeight = $desiredHeight;
-
-		} else {
-
-			// desired thumb dimensions are larger than current image dimmensions
-			if ($desiredWidth > $this->width || $desiredHeight > $this->height) {
-
-				// both dimensions are larger
-				if ($desiredWidth > $this->width && $desiredHeight > $this->height) {
-
-					// there's nothing to do
-
-				// desired width is larger
-				} elseif ($desiredWidth > $this->width) {
-
-					if ($aspectRatioBefore > $aspectRatioAfter) {
-						$this->fitToHeight($desiredHeight);
-						$cropWidth = $this->width;
-						$cropHeight = $desiredHeight;
-					} else {
-						$this->fitToWidth($this->width);
-						$cropWidth = $this->width;
-						$cropHeight = $desiredHeight;
-					}
-
-				} elseif ($desiredHeight > $this->height) {
-
-					if ($desiredWidth > $this->width) {
-						$cropWidth = $this->width;
-						$cropHeight = $this->height;
-					} else {
-						$cropWidth = $desiredWidth;
-						$cropHeight = $this->height;
-					}
-
-				}
-
-			// desired thumb dimensions fits current image dimmensions
-			} else {
-
-				if ($aspectRatioBefore > $aspectRatioAfter) {
-					$this->fitToHeight($desiredHeight);
-				} else {
-					$this->fitToWidth($desiredWidth);
-				}
-
-				$cropWidth = $desiredWidth;
-				$cropHeight = $desiredHeight;
-			}
-
-		}
-
-
-		if ($cropWidth > 0 && $cropHeight > 0) {
-			$this->debug("thumbnail($width, $height, ". ($shrink?'true': 'false') . ")\tcalling -> cropImage($cropWidth, $cropHeight, ". ($shrink?'true': 'false') . ")");
-
-			// return trimmed image
-			$this->cropImage($cropWidth, $cropHeight, $shrink);
-			$this->debug("cropImage($cropWidth, $cropHeight, ". ($shrink?'true': 'false') . ")\tcalling -> readMetaData()");
-			$this->readMetaData();
-		}
-
-		return $this;
-	}
-
-	/**
-	 * Rotates an image.
-	 * @param int $angle Rotation angle in degrees. Supports negative values.
-	 * @param mixed $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Transparent by default.
-	 * @return \CImage
-	 */
-	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT)
-	{
-		$angle = (int)$angle;
-		if (!is_numeric($angle) || $angle===0 || $angle<-359 || $angle > 359) {
-			return $this;
-		}
-
-		$this->debug("rotate($angle)\t\tcalling -> rotateImage($angle)");
-		$this->rotateImage($angle, $bgColor);
-		$this->debug("rotateImage($angle)\tcalling -> readMetaData()");
-		$this->readMetaData();
-
-		return $this;
-	}
-
-	/**
-	 * Flips an image using a given mode
-	 * @param int $mode
-	 * @return $this
-	 */
-	public function flip($mode = self::FLIP_VERTICAL)
-	{
-		if ($this->resource) {
-
-			$allowedModes = [
-				'horizontal' => self::FLIP_HORIZONTAL,
-				self::FLIP_HORIZONTAL => self::FLIP_HORIZONTAL,
-				'vertical' => self::FLIP_VERTICAL,
-				self::FLIP_VERTICAL => self::FLIP_VERTICAL,
-				'both' => self::FLIP_BOTH,
-				self::FLIP_BOTH => self::FLIP_BOTH,
-			];
-
-			if (isset($allowedModes[$mode])) {
-				$this->debug("flip($mode) calling -> flipImage($mode)");
-				$this->flipImage($mode);
-				$this->debug("flip($mode) calling -> readMetaData()");
-				$this->readMetaData();
-			}
-		}
-
-		return $this;
-	}
-
-	/**
 	 * Opposite color
 	 * @param string $color  Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
 	 * Where red, green, blue - integers 0-255, alpha - integer 0-127
@@ -987,64 +633,8 @@ class Image
 		}
 	}
 
-	/**
-	 * Converts a hex color value to its RGB equivalent
-	 * @param string $color  Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Where red, green, blue - integers 0-255, alpha - integer 0-127
-	 * @return array|bool
-	 */
-	protected function normalizeColor($color)
-	{
-		if (is_string($color)) {
-			$color = trim($color, '#');
-			if (strlen($color) === 6) {
-				list($r, $g, $b) = [
-					$color[0].$color[1],
-					$color[2].$color[3],
-					$color[4].$color[5]
-				];
-			} elseif (strlen($color) === 3) {
-				list($r, $g, $b) = [
-					$color[0].$color[0],
-					$color[1].$color[1],
-					$color[2].$color[2]
-				];
-			} else {
-				$r = '00';
-				$g = '00';
-				$b = '00';
-			}
 
-			return [
-				'r' => hexdec($r),
-				'g' => hexdec($g),
-				'b' => hexdec($b),
-				'a' => 0
-			];
-		}
 
-		return false;
-	}
-
-	/**
-	 * Ensures $value is always within $min and $max range.
-	 * If lower, $min is returned. If higher, $max is returned.
-	 *
-	 * @param int|float $value
-	 * @param int|float $min
-	 * @param int|float $max
-	 * @return int|float
-	 */
-	protected function keepWithin($value, $min, $max)
-	{
-		if ($value < $min) {
-			return $min;
-		} elseif ($value > $max) {
-			return $max;
-		} else {
-			return $value;
-		}
-	}
 
 	/**
 	 * Replace accented characters with non accented

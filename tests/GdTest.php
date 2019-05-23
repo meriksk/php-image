@@ -1,10 +1,10 @@
 <?php
 
-use merik\Image\ImageFactory;
+use meriksk\Image\Image;
 
 class GdTest extends ImageTest
 {
 
-	protected static $lib = ImageFactory::LIB_GD;
+	protected static $lib = Image::DRIVER_GD;
 
 }

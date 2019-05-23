@@ -7,7 +7,7 @@
     "authors": [
         {
             "name": "Marek Drugac",
-            "email": "drugacm@gmail.com",
+            "email": "marek.drugac@gmail.com",
             "role": "Creator"
         }
     ],
@@ -23,7 +23,7 @@
 	},
     "autoload": {
         "psr-4": {
-            "merik\\Image\\": "src/Image"
+            "meriksk\\Image\\": "src/Image"
         }
     },
     "scripts": {

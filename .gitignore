@@ -1,5 +1,6 @@
-.DS_Store
-composer.lock
-composer.phar
-vendor/
-tests/tmp
+/.idea
+/vendor
+/tests/tmp/*
+/composer.phar
+/composer.lock
+.phpunit.result.cache

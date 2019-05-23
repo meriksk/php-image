@@ -1,6 +1,6 @@
 <?php
 
-use merik\Image\ImageFactory;
+use meriksk\Image\ImageFactory;
 
 class ImagickTest extends ImageTest
 {
