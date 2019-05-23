@@ -1,6 +1,6 @@
 {
     "name": "meriksk/php-image",
-    "description": "Image lib",
+    "description": "PHP class to re-size and scale images",
     "keywords": ["image", "gd", "imagick", "resize", "thumbnail", "scale"],
 	"type": "library",
     "license": "MIT",
