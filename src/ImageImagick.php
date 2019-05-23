@@ -1,15 +1,14 @@
 <?php
 
-namespace meriksk\Image\driver;
+namespace PHPImage;
 
 use Exception;
 use Imagick;
-use meriksk\Image\Image;
 
 /**
- * DriverImagick class file. 
+ * ImageImagick class file. 
  */
-class DriverImagick extends Driver
+class ImageImagick extends Image
 {
 
 	/**
@@ -127,28 +126,27 @@ class DriverImagick extends Driver
 	protected function revertImage()
 	{
 		// destroy working image
-		$this->destroyResource();
+		$this->destroyResource($this->resource);
+		$this->resource = NULL;
 		$this->resource = clone $this->imageOriginal->resource;
 	}
 
 	/**
 	 * Destroy an image resources
-	 * @param Resource $resource
-	 * @return $this
+	 * @param Resource $image
 	 */
-	protected function destroyResource($resource = NULL): Image
+	protected function destroyResource($image = NULL)
 	{
-		if ($resource === NULL) {
-			$resource = $this->resource;
+		if ($image === NULL) {
+			$image = $this->resource;
 		}
 
-		if ($this->isResource($resource)) {
-			$resource->clear();
+		if ($this->isResource($image)) {
+			$image->clear();
 		}
 		
-		$resource = NULL;
+		$image = NULL;
 		$this->resource = NULL;
-		return $this;
 	}
 
 	/**

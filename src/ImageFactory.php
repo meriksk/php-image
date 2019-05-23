@@ -1,9 +1,8 @@
 <?php
 
-namespace merik\Image;
+namespace PHPImage;
 
 use Exception;
-
 
 // PHP
 // getimagesizefromstring — Get the size of an image from a string
