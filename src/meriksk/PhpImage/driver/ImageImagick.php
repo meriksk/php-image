@@ -1,56 +1,40 @@
 <?php
 
-namespace meriksk\Image\driver;
+namespace meriksk\PhpImage\driver;
 
 use Exception;
 use Imagick;
-use meriksk\Image\Image;
+use	meriksk\PhpImage\Image;
+use meriksk\PhpImage\BaseImage;
 
 /**
- * DriverImagick class file. 
+ * ImageImagick class file. 
  */
-class ImageImagick extends Driver
+class ImageImagick extends BaseImage
 {
+	
+	protected static $driver = Image::DRIVER_IMAGICK;
+
 
 	/**
 	 * Load image resource
-	 * @param string $image Image path or the image data, as a string.
-	 * @param bool $fromString Load image as a string.
-	 * @return Image 
+	 * @param string $file Image path or the image data, as a string.
+	 * @return void
 	 * @throws Exception
 	 */
-	protected function loadImage($image, $fromString = FALSE)
+	protected function loadImageFromFile($file)
 	{
-		$this->destroy();
+		// new image resource
 		$this->resource = new Imagick();
-
-		if ($fromString===true) {
-			$this->debug("loadImage()\tfrom string");
-			$result = $this->resource->readimageblob($image);
-			
-			if (!$result) {
-				throw new Exception('Image type is unsupported, the data is not in a recognised format, or the image is corrupt and cannot be loaded.');
-			}
-			
-		} else {
-			$this->debug("loadImage()\t\tfrom path");
-			$this->path = trim($image);
-			$this->resource->readImage($image);
-		}
-
+		$this->resource->readImage(realpath($file));
 		$this->resource->setColorspace(Imagick::COLORSPACE_SRGB);
-
-		// read image data
-		$this->readMetaData();
-
-		// auto rotate
-		$this->autoRotate();
-
-		// original image
-		$this->imageOriginal = clone $this;
-		$this->imageOriginal->resource = clone $this->resource;
-
-		return $this;
+	}
+	
+	protected function loadImageFromString()
+	{
+		$this->resource = new Imagick();
+		$this->resource->readImageBlob($this->dataString);
+		$this->resource->setColorspace(Imagick::COLORSPACE_SRGB);
 	}
 
 	/**
@@ -86,38 +70,30 @@ class ImageImagick extends Driver
 
 	/**
 	 * Outputs image without saving
-	 * @param null|string $format If omitted or null - format of original file will be used, may be gif|jpg|png
-	 * @param int|null $quality Output image quality in percents 0-100
+	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $mimeType 
 	 * @throws Exception
 	 */
-	public function output($format = NULL, $quality = NULL)
+	protected function outputImage($quality, $mimeType)
 	{
-		// Determine quality
-		$quality = $quality ? (int)$quality : $this->quality;
-
-		// Determine mimetype
-		switch (strtolower($format)) {
-			case 'gif':
-				$mimetype = 'image/gif';
-				$this->resource->setImageFormat('gif');
+		switch ($mimeType) {
+			case 'image/jpeg':
+				$this->resource->setImageFormat('jpeg');
 				break;
-			case 'jpeg':
-			case 'jpg':
-				$mimetype = 'image/jpeg';
-				$this->resource->setImageFormat('jpg');
-				break;
-			case 'png':
-				$mimetype = 'image/png';
+			case 'image/png':
 				$this->resource->setImageFormat('png');
 				break;
-			default:
-				$mimetype = $this->mimeType;
+			case 'image/gif':
+				$this->resource->setImageFormat('gif');
 				break;
+			default:
+				throw new Exception('Unsupported image format: ' . $mimeType);
 		}
 
-		// Output the image
-		header('Content-Type: ' . $mimetype);
-		echo $this->resource->getImageBlob();
+		return [
+			'mime_type' => $mimeType,
+			'data' => $this->resource->getImageBlob(),
+		];
 	}
 
 	/**
@@ -136,12 +112,8 @@ class ImageImagick extends Driver
 	 * @param Resource $resource
 	 * @return $this
 	 */
-	protected function destroyResource($resource = NULL): Image
+	protected function destroyResource($resource)
 	{
-		if ($resource === NULL) {
-			$resource = $this->resource;
-		}
-
 		if ($this->isResource($resource)) {
 			$resource->clear();
 		}
@@ -152,34 +124,55 @@ class ImageImagick extends Driver
 	}
 
 	/**
-	 * Fetch basic attributes about the image.
-	 * @param string $path The filename to read the information from.
-	 * @return $array
+	 * Fetch basic attributes about the image
+	 * @param string $file Filename or image data string
 	 * @throws Exception
 	 */
-	public function pingImage($path)
+	protected function pingImage($file = null)
 	{
-		$data = false;
-		if ($path && file_exists($path)) {
-			$image = new ImageImagick();
-			$image->path = $path;
-			$image->resource = new Imagick();
-			$result = $image->resource->pingImage($path);
+		$result = false;
 
-			if ($result) {
-				$image->width = $image->resource->getImageWidth();
-				$image->height = $image->resource->getImageHeight();
-				$image->mimeType = $image->resource->getImageMimeType();
-				$image->orientation = $image->getOrientation($image->width, $image->height);
-				$image->dateCreated = $image->getExifData('dateCreated', NULL, $image->path);
-				$image->extension = str_replace(['jpeg'], ['jpg'], strtolower($image->resource->getImageFormat()));
+		if ($file) {
+			$result = $this->resource->pingImage($file);
+		} else {
+			if ($this->dataString) {
+				$result = $this->resource->pingImageBlob($this->dataString);
+			} elseif ($this->dataBase64String) {
+				$result = $this->resource->pingImageBlob(base64_decode($this->dataBase64String));
+			} else {
+				$result = $this->resource->pingImage($this->path);
 			}
+		}
 
-			$data = $image->getInfo();
-			$image->destroy();
+		if ($result) {
+			$this->w = $this->resource->getImageWidth();
+			$this->h = $this->resource->getImageHeight();
+			$this->mime_type = $this->resource->getImageMimeType();
+		
+			switch ($this->mime_type) {
+				case 'image/jpeg':
+				case 'image/x-jpeg':
+					$this->mime_type = 'image/jpeg';
+					$this->type = IMAGETYPE_JPEG;
+					$this->extension = 'jpg';
+					break;
+				case 'image/png':
+					$this->type = IMAGETYPE_PNG;
+					$this->extension = 'png';
+					break;
+				case 'image/gif':
+					$this->type = IMAGETYPE_GIF;
+					$this->extension = 'gif';
+					break;
+				default:
+					throw new Exception('Unknown image type: '. $this->mime_type);
+			}
+			
+			$this->orientation = $this->getOrientation();
+
 		}
 		
-		return $data;
+		return $result;
 	}
 
 	/**
@@ -223,7 +216,7 @@ class ImageImagick extends Driver
 	 * @param bool $shrink
 	 * @return CImageImagick
 	 */
-	protected function cropImage($width, $height, $shrink = FALSE)
+	protected function cropImage($x, $y, $width, $height)
 	{
 		if ($shrink === true) {
 
@@ -244,6 +237,17 @@ class ImageImagick extends Driver
 
 		return $this;
 	}
+	
+	/**
+	 * Crop
+	 * @param int $width
+	 * @param int $height
+	 * @param bool $allowEnlarge
+	 */
+	public function thumbnailImage($width, $height, $allowEnlarge = false)
+	{
+		
+	}
 
 	/**
 	 * Resize an image to the specified dimensions
@@ -260,24 +264,22 @@ class ImageImagick extends Driver
 
 	/**
 	 * Save an image. The resulting format will be determined by the file extension.
-	 * @param string $path If omitted - original file will be overwritten
-	 * @param null|int $quality	Output image quality in percents 0-100
-	 * @param null|string $format The format to use; determined by file extension if null
-	 * @return CImage
+	 * @param string $filename
+	 * @param int $quality
+	 * @param string $mimeType
 	 * @throws Exception
 	 */
-	protected function saveImage($path, $quality = NULL, $format = NULL)
+	protected function saveImage($filename, $quality, $mimeType)
 	{
 		// Create the image
-		switch (strtolower($format)) {
-			case 'jpg':
-			case 'jpeg':
+		switch ($mimeType) {
+			case 'image/jpeg':
 				$this->resource->setImageFormat('jpg');
 				break;
-			case 'png':
+			case 'image/png':
 				$this->resource->setImageFormat('png');
 				break;
-			case 'gif':
+			case 'image/gif':
 				$this->resource->setImageFormat('gif');
 				break;
 			default:
@@ -288,13 +290,13 @@ class ImageImagick extends Driver
 		$this->resource->setImageCompressionQuality($quality);
 		$this->resource->stripImage();
 
-		$result = $this->resource->writeImage($path);
+		$result = $this->resource->writeImage($filename);
 
 		if (!$result) {
-			throw new Exception('Unable to save image: ' . $path);
+			throw new Exception('Unable to save image: ' . $filename);
 		}
 
-		return $this;
+		return true;
 	}
 
 	/**
@@ -330,6 +332,18 @@ class ImageImagick extends Driver
 		return $this;
 	}
 
+	/**
+	 * Set background color
+	 * @param string|array $color
+	 * @return $this
+	 */
+	protected function setImageBackgroundColor($color)
+	{
+		$hex = $this->rgba2Hex($color);
+		$this->resource->setImageBackgroundColor($hex);
+		return $this;
+	}
+	
 	/**
 	 * Load watermark image into the memory
 	 * @param string $path

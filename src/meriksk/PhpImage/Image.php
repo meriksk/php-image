@@ -1,11 +1,11 @@
 <?php
 
-namespace meriksk\Image;
+namespace meriksk\PhpImage;
 
 use DateTime;
 use DateTimeZone;
 use Exception;
-use meriksk\Image\ImageFactory;
+use meriksk\PhpImage\DriverFactory;
 
 /**
  * Image class file
@@ -13,33 +13,35 @@ use meriksk\Image\ImageFactory;
 class Image
 {
 
-    /**
-     * Constant for the (deprecated) transparent color
-     */
     const COLOR_TRANSPARENT = -1;
     const COLOR_WHITE = 'FFFFFF';
+    const COLOR_BLACK = '000000';
 
-	const DRIVER_GD = 'Gd';
-	const DRIVER_IMAGICK = 'Imagick';
+	const DRIVER_GD = 'gd';
+	const DRIVER_IMAGICK = 'imagick';
 	
-    const CROP_TOP = 1;
-    const CROP_CENTER = 2;
-    const CROP_BOTTOM = 3;
-    const CROP_LEFT = 4;
-    const CROP_RIGHT = 5;
+	const ORIENTATION_LANDSCAPE = 'landscape';
+	const ORIENTATION_PORTRAIT = 'portrait';
+	const ORIENTATION_SQUARE = 'square';
+	
+    const CROP_CENTER = 1;
+    const CROP_LEFT = 2;
+    const CROP_RIGHT = 3;
+    const CROP_TOP = 4;
+    const CROP_BOTTOM = 5;
+    const CROP_TOP_LEFT = 6;
+    const CROP_TOP_RIGHT = 7;
+    const CROP_BOTTOM_LEFT = 8;
+    const CROP_BOTTOM_RIGHT = 9;
 
 	const FLIP_HORIZONTAL = 'horizontal';
 	const FLIP_VERTICAL = 'vertical';
 	const FLIP_BOTH = 'both';
-
-
-
-	/**
-	 * Allow up-scaling
-	 */
+	
 	public static $allowUpscale = false;
-
+	public static $debug = false;
 	public $driver;
+
 
 	/**
 	 * Class constructor
@@ -54,10 +56,8 @@ class Image
 
 		// load image
 		if ($filename !== null) {
-			$this->driver->load($filename);
+			$this->driver->fromFile($filename);
 		}
-
-		// https://github.com/gumlet/php-image-resize/blob/master/lib/ImageResize.php
 	}
 
 	/**
@@ -76,17 +76,19 @@ class Image
 	 */
 	public function __destruct()
 	{
-		//$this->debug("__destruct()\t\tcalling -> destroy()");
-
-		// working image
-		//$this->destroy();
+		$this->destroy();
+	}
+	
+	public function __toString() 
+	{
+		$this->output(100);
 	}
 
 	/**
 	 * Returns driver used by script
 	 * @return string
 	 */
-	public function getDriver(): string
+	public function getDriver()
 	{
 		if (strpos(get_class($this->driver), 'DriverGd')!==false) {
 			return self::DRIVER_GD;
@@ -96,62 +98,59 @@ class Image
 	}
 
 	/**
-	 * Load an image
-	 * @param string $path Path to image file
-	 * @return static
-	 * @throws Exception
+	 * Loads an image from a file.
+	 *
+	 * @param string $file The image file to load.
+	 * @throws \Exception Thrown if file or image data is invalid.
+	 * @return \meriksk\PhpImage
 	 */
-	public function load($path)
+	public function fromFile($file)
 	{
-		$this->driver->load($path);
+		$this->driver->fromFile($file);
 		return $this;
 	}
 
 	/**
-	 * Load a string as image
-	 * @param string $data Image data
-	 * @param string $lib
-	 * @return static
-	 * @throws Exception
+	 * Creates a new image from a string.
+	 * @param string $string The raw image data as a string.
+	 * @example
+	 *    $string = file_get_contents('image.jpg');
+	 * @return Image
 	 */
-	public static function loadFromString($data, $lib = NULL)
+	public static function fromString($data, $lib = NULL)
 	{
 		$image = new Image(null, $lib);
-		$image->driver->loadFromString($data);
+		$image->driver->fromString($data);
 		return $image;
 	}
 
 	/**
-	 * Load a string as image
-	 * @param string $data Image Base64 data
-	 * @param string $lib
-	 * @return static
-	 * @throws Exception
+	 * Creates a new image from a base64 encoded string.
+	 * @param string $string The raw image data encoded as a base64 string.
+	 * @return Image
 	 */
-	public static function loadFromBase64String($data, $lib = NULL)
+	public static function fromBase64String($data, $lib = NULL)
 	{
 		$image = new Image(null, $lib);
-		$image->driver->loadFromBase64String($data);
+		$image->driver->fromString(base64_decode($data));
 		return $image;
 	}
 
 	/**
 	 * Fetch basic attributes about the image.
-	 * @param string $filename The filename to read the information from.
-	 * @param string $lib
-	 * @return $array
+	 * @return array
 	 * @throws Exception
 	 */
-	public function ping($filename): array
+	public function ping()
 	{
-		return $this->driver->ping($filename);
+		return $this->driver->ping();
 	}
 
 	/**
 	 * Get image info
 	 * @return array
 	 */
-	public function getInfo(): array
+	public function getInfo()
 	{
 		return $this->driver->getInfo();
 	}
@@ -170,7 +169,7 @@ class Image
 	 * Revert an image
 	 * @return static
 	 */
-	public function revert(): Image
+	public function revert()
 	{
 		$this->driver->revert();
 		return $this;
@@ -198,7 +197,7 @@ class Image
 	 * Returns image dimensions
 	 * @return array
 	 */
-	public function getDimensions(): array
+	public function getDimensions()
 	{
 		return [$this->driver->w, $this->driver->h];
 	}
@@ -272,22 +271,54 @@ class Image
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function save($filename = NULL, $quality = NULL, $imageType = NULL): bool
+	public function save($filename = NULL, $quality = NULL, $imageType = NULL)
 	{
 		return $this->driver->save($filename, $quality, $imageType);
 	}
 	
 	/**
-	 * Outputs image without saving
+	 * Outputs the image to the screen. Must be called before any output is sent to the screen.
 	 * @param int $quality Output image quality in percents 0-100
-	 * @param string $imageType If omitted or null - image type of original file will be used
-	 * @throws Exception
+	 * @param string $imageType If omitted or null - image type of original file will be used (extension or mime-type)
 	 */
-	public function output($quality = NULL, $imageType = NULL)
+	public function toScreen($quality = NULL, $imageType = NULL)
 	{
-		$this->driver->output($quality, $imageType);
+		$this->driver->toScreen($quality, $imageType);
+	}
+	
+	/**
+	 * Generates an image string.
+	 * @param int $quality Image quality as a percentage (default 100).
+	 * @param string $imageType The image format to output as a mime type (defaults to the original mime type).
+	 * @return string 
+	 */
+	public function toString($quality = 100, $imageType = null) 
+	{
+		return $this->driver->toString($quality, $imageType);
 	}
 
+	/**
+	 * Generates a base64 string.
+	 * @param int $quality Image quality as a percentage (default 100).
+	 * @param string $imageType The image format to output as a mime type (defaults to the original mime type).
+	 * @return string 
+	 */
+	public function toBase64($quality = 100, $imageType = null)
+	{
+		return $this->driver->toBase64($quality, $imageType);
+	}
+	
+	/**
+	 * Generates a data URI.
+	 * @param int $quality Image quality as a percentage (default 100).
+	 * @param string $imageType The image format to output as a mime type (defaults to the original mime type).
+	 * @return string Returns a string containing a data URI.
+	 */
+	public function toDataUri($quality = 100, $imageType = null)
+	{
+		return $this->driver->toDataUri($quality, $imageType);
+	}
+	
 	/**
 	 * Resize an image to the specified dimensions
 	 * @param int|array $width Desired width - number or array [w, h]
@@ -295,7 +326,7 @@ class Image
 	 * @param bool $allowEnlarge
 	 * @return static
 	 */
-	public function resize($width, $height, bool $allowEnlarge = false): Image
+	public function resize($width, $height, bool $allowEnlarge = false)
 	{
 		$this->driver->resize($width, $height, $allowEnlarge);
 		return $this;
@@ -307,7 +338,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToWidth($width, bool $allowEnlarge = false): Image
+    public function resizeToWidth($width, bool $allowEnlarge = false)
     {
 		$this->driver->resizeToWidth($width, $allowEnlarge);
         return $this;
@@ -319,7 +350,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToHeight($height, bool $allowEnlarge = false): Image
+    public function resizeToHeight($height, bool $allowEnlarge = false)
     {
 		$this->driver->resizeToHeight($height, $allowEnlarge);
         return $this;
@@ -331,7 +362,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToShortSide($max, $allowEnlarge = false): Image
+    public function resizeToShortSide($max, $allowEnlarge = false)
     {
         $this->driver->resizeToShortSide($max, $allowEnlarge);
         return $this;
@@ -343,7 +374,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToLongSide($max, $allowEnlarge = false): Image
+    public function resizeToLongSide($max, $allowEnlarge = false)
     {
         $this->driver->resizeToLongSide($max, $allowEnlarge);
         return $this;
@@ -363,18 +394,31 @@ class Image
     }
 
 	/**
-	 * Crops image according to the given width, height and crop position.
-	 * This will scale the image to as close as it can to the passed dimensions, 
-	 * and then crop and center the rest.
+	 * Crops image according to the given coordinates.
+	 * @param int $x
+	 * @param int $y
 	 * @param int $width
 	 * @param int $height
-	 * @param int $position
 	 * @param bool $allowEnlarge
 	 * @return static
 	 */
-	public function crop($width, $height, $position = self::CROP_CENTER, $allowEnlarge = false): Image
+	public function crop($x, $y, $width, $height, $allowEnlarge = false)
 	{
-		$this->driver->crop($width, $height, $position, $allowEnlarge);
+		$this->driver->crop($x, $y, $width, $height, $allowEnlarge);
+		return $this;
+	}
+
+	/**
+	 * Crops image according to the given width, height and crop position.
+	 * @param int $width
+	 * @param int $height
+	 * @param bool $allowEnlarge
+	 * @param int $position
+	 * @return static
+	 */
+	public function cropAuto($width, $height, $position = self::CROP_CENTER)
+	{
+		$this->driver->cropAuto($width, $height, $position);
 		return $this;
 	}
 
@@ -384,9 +428,18 @@ class Image
 	 * @param int $height
 	 * @param bool $allowEnlarge
 	 * @return static
+	 * @throws Exception
 	 */
-	public function thumbnail($width, $height, $allowEnlarge = false): Image
+	public function thumbnail($width, $height, $allowEnlarge = false)
 	{
+		// check desired dimensions
+		if (!is_numeric($width) || $width < 0) {
+			throw new InvalidArgumentException("Width must be a valid int.");
+		}
+		if (!is_numeric($height) || $height < 0) {
+			throw new InvalidArgumentException("Height must be a valid int.");
+		}
+
 		$this->driver->thumbnail($width, $height, $allowEnlarge);
 		return $this;
 	}
@@ -398,8 +451,12 @@ class Image
 	 * Transparent by default.
 	 * @return static
 	 */
-	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT): Image
+	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT)
 	{
+		if (!is_numeric($angle) || $angle<-360 || $angle>360) {
+			throw new InvalidArgumentException("Width must be a valid int.");
+		}
+
 		$this->driver->rotate($angle, $bgColor);
 		return $this;
 	}
@@ -415,6 +472,16 @@ class Image
 		return $this;
 	}
 
+	/**
+	 * Set background color
+	 * @param string|array $color
+	 * @return $this
+	 */
+	public function setBackgroundColor($color)
+	{
+		$this->driver->setBackgroundColor($color);
+		return $this;
+	}
 
 
 
@@ -609,7 +676,7 @@ class Image
 	/**
 	 * Opposite color
 	 * @param string $color  Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Where red, green, blue - integers 0-255, alpha - integer 0-127
+	 * Where red, green, blue - ints 0-255, alpha - int 0-127
 	 * @param bool $inverse
 	 * @return array
 	 */

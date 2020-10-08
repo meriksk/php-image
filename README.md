@@ -53,7 +53,7 @@ $image = new \meriksk\Image\Image($filename);
 or alias it:
 
 ```php 
-use meriksk\Image\Image;
+use \meriksk\Image\Image;
 
 $image = new Image($filename);
 ```
