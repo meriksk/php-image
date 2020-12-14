@@ -1,6 +1,5 @@
-/.idea
-/vendor
-/tests/tmp/*
-/composer.phar
-/composer.lock
+.idea
+.DS_Store
 .phpunit.result.cache
+vendor
+tests/_output/*

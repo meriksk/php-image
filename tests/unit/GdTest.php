@@ -1,6 +1,9 @@
 <?php
 
-use meriksk\Image\Image;
+namespace tests\unit;
+
+use meriksk\PhpImage\Image;
+use tests\unit\ImageTest;
 
 class GdTest extends ImageTest
 {

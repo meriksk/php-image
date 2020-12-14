@@ -1,49 +1,50 @@
 <?php
 
-class ImageTestCase extends PHPUnit_Framework_TestCase
+namespace tests;
+
+class ImageTestCase extends \Codeception\Test\Unit
 {
-	
-	/**
-	 * Image (Landscape orientation - 1920x1280px)
-	 * @var string
-	 */
-	protected static $testImageLandscape;
-	
-	/**
-	 * Image with EXIF data (Landscape orientation - 1920x1280px)
-	 * @var string
-	 */
-	protected static $testImageLandscapeExif;
 
-	/**
-	 * Image (Portrait orientation - 1280x1920px)
-	 * @var string
-	 */
-	protected static $testImagePortrait;
-	
-	/**
-	 * Image (Landscape orientation - 500x333px)
-	 * @var string
-	 */
-	protected static $testImageSmall;
+	protected static $lib;
 
-	
+	protected static $imageLandscape;			// local, landscape, 800x533
+	protected static $imagePortrait;			// local, portrait, 533x800
+	protected static $imageTransparentGif;		// local, portrait, 610x621
+	protected static $imageTransparentPng;		// local, portrait, 610x621
+	protected static $imageNoMetadata;			// local, portrait, 640x480
+	protected static $imageExif;				// local, portrait, 640x480
+	protected static $imageExifGps;				// local, landscape, 640x480
+	protected static $imageRemoteExif;			// remote, portrat, 533x800 
+
 
     /**
-     * This method is called before the first test of this test class is run.
+     * @var \UnitTester
      */
-	public static function setUpBeforeClass(): void
-	{
-		self::$testImageLandscape = DIR_TEST_ASSETS . DS . 'img_1920x1280.jpg';
-		self::$testImageLandscapeExif = DIR_TEST_ASSETS . DS . 'img_1920x1280_exif.jpg';
-		self::$testImagePortrait = DIR_TEST_ASSETS . DS . 'img_1280x1920.jpg';
-		self::$testImageSmall = DIR_TEST_ASSETS . DS . 'img_500x333.jpg';
+    protected $tester;
+
+	/**
+	 * Method is executed before each test
+	 */
+    public function _before()
+    {
+        //if (!extension_loaded(static::$lib)) {
+        //    $I->markTestIncomplete('The "'. static::$lib.'" extension is not available.');
+        //}
+
+		self::$imageLandscape = DIR_TEST_ASSETS . DS . 'image_landscape.jpg';
+		self::$imagePortrait = DIR_TEST_ASSETS . DS . 'image_portrait.jpg';
+		self::$imageTransparentPng = DIR_TEST_ASSETS . DS . 'image_transparent.png';
+		self::$imageTransparentGif = DIR_TEST_ASSETS . DS . 'image_transparent.gif';
+		self::$imageNoMetadata = DIR_TEST_ASSETS . DS . 'image_no_metadata.jpg';
+		self::$imageExif = DIR_TEST_ASSETS . DS . 'image_exif.jpg';
+		self::$imageExifGps = DIR_TEST_ASSETS . DS . 'image_exif_gps.jpg';
+		self::$imageRemoteExif = 'https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/exif-org/canon-ixus.jpg';
 	} 
 
-    /**
-     * This method is called after the last test of this test class is run.
-     */
-	public static function tearDownAfterClass(): void
+	/**
+	 * Method is executed after each test
+	 */
+	public function _after()
     {
 		//cleanDirectory(DIR_TEST_TMP);
 	}
@@ -60,7 +61,7 @@ class ImageTestCase extends PHPUnit_Framework_TestCase
 
 	public function assertImage($image): void
 	{
-		$this->assertInstanceOf('meriksk\Image\Image', $image);
+		$this->assertInstanceOf('meriksk\PhpImage\Image', $image);
 	}
 
 	/**
@@ -68,7 +69,7 @@ class ImageTestCase extends PHPUnit_Framework_TestCase
 	 * @param mixed $resource
 	 * @param string $message
 	 */
-	public function assertResource($resource, $message = ''): void
+	public function assertResource($resource, $message = '')
 	{
 		if ($resource && ((is_resource($resource) && 'gd'===get_resource_type($resource)) || (is_object($resource) && ($resource instanceof Imagick)))) {
 			$this->assertTrue(true);

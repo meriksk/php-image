@@ -5,6 +5,7 @@ namespace meriksk\PhpImage;
 use DateTime;
 use DateTimeZone;
 use Exception;
+use InvalidArgumentException;
 use meriksk\PhpImage\DriverFactory;
 
 /**
@@ -13,7 +14,7 @@ use meriksk\PhpImage\DriverFactory;
 class Image
 {
 
-    const COLOR_TRANSPARENT = -1;
+    const COLOR_TRANSPARENT = [255, 255, 255, 0.0];
     const COLOR_WHITE = 'FFFFFF';
     const COLOR_BLACK = '000000';
 
@@ -46,29 +47,29 @@ class Image
 	/**
 	 * Class constructor
 	 * @param string $filename
-	 * @param string $lib
+	 * @param string $driver
 	 * @throws Exception
 	 */
-	public function __construct($filename = NULL, $lib = NULL)
+	public function __construct($filename = null, $driver = null)
 	{
 		// init driver
-		$this->driver = DriverFactory::get($lib);
+		$this->driver = DriverFactory::get($driver);
 
 		// load image
 		if ($filename !== null) {
-			$this->driver->fromFile($filename);
+			$this->driver->loadFromFile($filename);
 		}
 	}
 
 	/**
 	 * Load an image
-	 * @param string $lib
+	 * @param string $driver
 	 * @return static
 	 * @throws Exception
 	 */
-	public static function getInstance($lib = NULL)
+	public static function getInstance($driver = null)
 	{
-		return new Image(null, $lib);
+		return new Image(null, $driver);
 	}
 
 	/**
@@ -86,9 +87,18 @@ class Image
 
 	/**
 	 * Returns driver used by script
-	 * @return string
+	 * @return BaseImage
 	 */
 	public function getDriver()
+	{
+		return $this->driver;
+	}
+
+	/**
+	 * Returns driver name used by script
+	 * @return string
+	 */
+	public function getDriverName()
 	{
 		if (strpos(get_class($this->driver), 'DriverGd')!==false) {
 			return self::DRIVER_GD;
@@ -96,48 +106,105 @@ class Image
 			return self::DRIVER_IMAGICK;
 		}
 	}
+	
+	/**
+	 * Loads an image from a file.
+	 *
+	 * @param string $file The image file to load.
+	 * @param string $driver Image library driver
+	 * @return \meriksk\PhpImage
+	 * @throws \Exception Thrown if file or image data is invalid.
+	 */
+	public static function load($file, $driver = null)
+	{
+		$image = new Image(null, $driver);
+		$image->driver->loadFromFile($file);
+		return $image;
+	}
 
 	/**
 	 * Loads an image from a file.
 	 *
 	 * @param string $file The image file to load.
-	 * @throws \Exception Thrown if file or image data is invalid.
 	 * @return \meriksk\PhpImage
+	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
-	public function fromFile($file)
+	public function loadFromFile($file)
 	{
-		$this->driver->fromFile($file);
+		$this->driver->loadFromFile($file);
 		return $this;
+	}
+	
+	/**
+	 * Loads an image from a file.
+	 *
+	 * @param string $file The image file to load.
+	 * @param string $driver Image library driver
+	 * @return \meriksk\PhpImage
+	 * @throws \Exception Thrown if file or image data is invalid.
+	 */
+	public static function fromFile($file, $driver = null)
+	{
+		$image = new Image(null, $driver);
+		$image->driver->loadFromFile($file);
+		return $image;
 	}
 
 	/**
-	 * Creates a new image from a string.
-	 * @param string $string The raw image data as a string.
-	 * @example
-	 *    $string = file_get_contents('image.jpg');
-	 * @return Image
+	 * Loads an image from a string.
+	 *
+	 * @param string $data The raw image data as a string.
+	 * @return \meriksk\PhpImage
+	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
-	public static function fromString($data, $lib = NULL)
+	public function loadFromString($data)
 	{
-		$image = new Image(null, $lib);
-		$image->driver->fromString($data);
+		$this->driver->loadFromString($data, true);
+		return $this;
+	}
+	
+	/**
+	 * Creates a new image from a string.
+	 * @param string $data The raw image data as a string.
+	 * @param string $driver Image library driver
+	 * @return \meriksk\PhpImage
+	 */
+	public static function fromString($data, $driver = null)
+	{
+		$image = new Image(null, $driver);
+		$image->driver->loadFromString($data, true);
 		return $image;
 	}
 
 	/**
 	 * Creates a new image from a base64 encoded string.
 	 * @param string $string The raw image data encoded as a base64 string.
-	 * @return Image
+	 * @return \meriksk\PhpImage
 	 */
-	public static function fromBase64String($data, $lib = NULL)
+	public function loadFromBase64($data)
 	{
-		$image = new Image(null, $lib);
-		$image->driver->fromString(base64_decode($data));
+		$this->driver->loadFromString($data, false);
+		return $this;
+	}
+
+	/**
+	 * Creates a new image from a base64 encoded string.
+	 * @param string $string The raw image data encoded as a base64 string.
+	 * @param string $driver Image library driver
+	 * @return \meriksk\PhpImage
+	 */
+	public static function fromBase64($data, $driver = null)
+	{
+		$image = new Image(null, $driver);
+		$image->driver->loadFromString($data, false);
 		return $image;
 	}
 
 	/**
 	 * Fetch basic attributes about the image.
+	 * @param string $filename This parameter specifies the file you wish to 
+	 * retrieve information about. It can reference a local file 
+	 * or (configuration permitting) a remote file using one of the supported streams.
 	 * @return array
 	 * @throws Exception
 	 */
@@ -145,14 +212,30 @@ class Image
 	{
 		return $this->driver->ping();
 	}
+	
+	/**
+	 * Fetch basic attributes about the image.
+	 * @param string $filename This parameter specifies the file you wish to 
+	 * retrieve information about. It can reference a local file 
+	 * or (configuration permitting) a remote file using one of the supported streams.
+	 * @param string $driver Image library driver
+	 * @return array
+	 * @throws Exception
+	 */
+	public static function pingImage($filename, $driver = null)
+	{
+		$image = new Image(null, $driver);
+		return $image->driver->ping($filename);
+	}
 
 	/**
 	 * Get image info
+	 * @param bool $extendedInfo Read extended information about the image (Exif, Gps, ...)
 	 * @return array
 	 */
-	public function getInfo()
+	public function getInfo($extendedInfo = false)
 	{
-		return $this->driver->getInfo();
+		return $this->driver->getInfo($extendedInfo);
 	}
 
 	/**
@@ -174,7 +257,7 @@ class Image
 		$this->driver->revert();
 		return $this;
 	}
-
+	
 	/**
 	 * Returns image resource
 	 * @return resource
@@ -192,14 +275,28 @@ class Image
 	{
 		return $this->driver->path;
 	}
+	
+	/**
+	 * Returns the file extension of the specified file
+	 * @param string $path
+	 * @return string
+	 */
+	function getExtensionFromPath($path = null)
+	{
+		if ($path===null) { 
+			$path = $this->driver->path;
+		}
+
+		return pathinfo($path, PATHINFO_EXTENSION);
+	}
 
 	/**
 	 * Returns image dimensions
-	 * @return array
+	 * @return array Returns image dimensions or false on errors.
 	 */
 	public function getDimensions()
 	{
-		return [$this->driver->w, $this->driver->h];
+		return $this->driver->getDimensions();
 	}
 
 	/**
@@ -241,8 +338,8 @@ class Image
 	
 	/**
 	 * Get image orientation
-	 * @param NULL|int $width
-	 * @param NULL|int $height
+	 * @param null|int $width
+	 * @param null|int $height
 	 * @return null|string
 	 */
 	public function getOrientation()
@@ -262,6 +359,65 @@ class Image
 		
 		return null;
 	}
+	
+	/**
+	 * Checks if an image is in required format.
+	 * @return bool
+	 */
+	public function isImageType($imageType)
+	{
+		if (is_string($imageType)) {
+			$imageType = strtolower(trim($imageType));
+		}
+		
+		switch ($imageType) {
+			case 'gif':
+			case 'image/gif':
+			case IMAGETYPE_GIF:
+				return $this->driver->mime_type === 'image/gif';
+
+			case 'png':
+			case 'image/png':
+			case IMAGETYPE_PNG:
+				return $this->driver->mime_type === 'image/png';
+
+			case 'jpg':
+			case 'jpeg':
+			case 'image/jpeg':
+			case IMAGETYPE_JPEG:
+				return $this->driver->mime_type === 'image/jpeg';
+		}
+		
+		// default
+		return false;
+	}
+	
+	/**
+	 * Checks if an image is in JPEG format.
+	 * @return bool
+	 */
+	public function isJpeg()
+	{
+		return $this->isImageType('image/jpeg');
+	}
+	
+	/**
+	 * Checks if an image is in PNG format.
+	 * @return bool
+	 */
+	public function isPng()
+	{
+		return $this->isImageType('image/png');
+	}
+	
+	/**
+	 * Checks if an image is in GIF format.
+	 * @return bool
+	 */
+	public function isGif()
+	{
+		return $this->isImageType('image/gif');
+	}
 
 	/**
 	 * Save an image. The resulting format will be determined by the file extension.
@@ -271,21 +427,11 @@ class Image
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function save($filename = NULL, $quality = NULL, $imageType = NULL)
+	public function save($filename = null, $quality = null, $imageType = null)
 	{
 		return $this->driver->save($filename, $quality, $imageType);
 	}
-	
-	/**
-	 * Outputs the image to the screen. Must be called before any output is sent to the screen.
-	 * @param int $quality Output image quality in percents 0-100
-	 * @param string $imageType If omitted or null - image type of original file will be used (extension or mime-type)
-	 */
-	public function toScreen($quality = NULL, $imageType = NULL)
-	{
-		$this->driver->toScreen($quality, $imageType);
-	}
-	
+
 	/**
 	 * Generates an image string.
 	 * @param int $quality Image quality as a percentage (default 100).
@@ -320,13 +466,24 @@ class Image
 	}
 	
 	/**
+	 * Outputs the image to the screen. Must be called before any output is sent to the screen.
+	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $imageType If omitted or null - image type of original file will be used (extension or mime-type)
+	 * @return void
+	 */
+	public function toScreen($quality = null, $imageType = null)
+	{
+		$this->driver->toScreen($quality, $imageType);
+	}
+	
+	/**
 	 * Resize an image to the specified dimensions
 	 * @param int|array $width Desired width - number or array [w, h]
 	 * @param int|null $height Desired height, if omitted - assumed equal to $width
 	 * @param bool $allowEnlarge
 	 * @return static
 	 */
-	public function resize($width, $height, bool $allowEnlarge = false)
+	public function resize($width, $height, bool $allowEnlarge = true)
 	{
 		$this->driver->resize($width, $height, $allowEnlarge);
 		return $this;
@@ -338,7 +495,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToWidth($width, bool $allowEnlarge = false)
+    public function resizeToWidth($width, bool $allowEnlarge = true)
     {
 		$this->driver->resizeToWidth($width, $allowEnlarge);
         return $this;
@@ -350,7 +507,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToHeight($height, bool $allowEnlarge = false)
+    public function resizeToHeight($height, bool $allowEnlarge = true)
     {
 		$this->driver->resizeToHeight($height, $allowEnlarge);
         return $this;
@@ -362,7 +519,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToShortSide($max, $allowEnlarge = false)
+    public function resizeToShortSide($max, $allowEnlarge = true)
     {
         $this->driver->resizeToShortSide($max, $allowEnlarge);
         return $this;
@@ -374,7 +531,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToLongSide($max, $allowEnlarge = false)
+    public function resizeToLongSide($max, $allowEnlarge = true)
     {
         $this->driver->resizeToLongSide($max, $allowEnlarge);
         return $this;
@@ -387,7 +544,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge = false)
+    public function resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge = true)
     {
         $this->driver->resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge);
 		return $this;
@@ -426,11 +583,12 @@ class Image
 	 * Extracts a region of the image.
 	 * @param int $width
 	 * @param int $height
+	 * @param bool $fill
 	 * @param bool $allowEnlarge
 	 * @return static
 	 * @throws Exception
 	 */
-	public function thumbnail($width, $height, $allowEnlarge = false)
+	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false)
 	{
 		// check desired dimensions
 		if (!is_numeric($width) || $width < 0) {
@@ -440,7 +598,23 @@ class Image
 			throw new InvalidArgumentException("Height must be a valid int.");
 		}
 
-		$this->driver->thumbnail($width, $height, $allowEnlarge);
+		$this->driver->thumbnail($width, $height, $fill, $allowEnlarge);
+		return $this;
+	}
+	
+	/**
+	 * Flips an image using a given mode
+	 * @param int|string $mode
+	 * @return static
+	 * @throws Exception
+	 */
+	public function flip($mode = self::FLIP_VERTICAL)
+	{
+		if (!in_array($mode, [Image::FLIP_HORIZONTAL, Image::FLIP_VERTICAL, Image::FLIP_BOTH])) {
+			throw new InvalidArgumentException('Invalid flip mode.');
+		}
+
+		$this->driver->flip($mode);
 		return $this;
 	}
 
@@ -454,78 +628,32 @@ class Image
 	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT)
 	{
 		if (!is_numeric($angle) || $angle<-360 || $angle>360) {
-			throw new InvalidArgumentException("Width must be a valid int.");
+			throw new InvalidArgumentException('Width must be a valid int.');
 		}
 
 		$this->driver->rotate($angle, $bgColor);
 		return $this;
 	}
-
-	/**
-	 * Flips an image using a given mode
-	 * @param int|string $mode
-	 * @return static
-	 */
-	public function flip($mode = self::FLIP_VERTICAL)
-	{
-		$this->driver->flip($mode);
-		return $this;
-	}
-
-	/**
-	 * Set background color
-	 * @param string|array $color
-	 * @return $this
-	 */
-	public function setBackgroundColor($color)
-	{
-		$this->driver->setBackgroundColor($color);
-		return $this;
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/**
-	 * Returns image date of creation
-	 * @param string $format
-	 * @return string
-	 */
-	public function getDateCreated($format = NULL)
-	{
-		return $this->dateCreated;
-	}
-
+	
 	/**
 	 * Auto-adjust photo orientation
 	 */
 	protected function autoRotate()
 	{
-
-		$this->debug("autoRotate()\t\tcalling -> getOrientation(true)");
+		$this->debug("autoRotate()");
 
 		// adjust orientation if EXIF lib is available
-		$this->debug("getOrientation()\tcalling -> getExifProperty('orientation')");
-		$orientation = $this->getExifProperty('orientation');
+		$orientation = $this->getExifData('orientation');
 
 		if (empty($orientation)) {
 			return $this;
 		}
 
-		$usingImagick = get_class($this)==='CImageImagick';
+		$driverImagick = get_class($this->driver)==='ImageImagick';
 
 		// correct EXIF rotation information
-		if ($usingImagick) {
-			$this->debug("autoRotate()\t\treseting orientation: " . Imagick::ORIENTATION_TOPLEFT);
+		if ($driverImagick) {
+			$this->debug("autoRotate()\t\treseting EXIF orientation: " . Imagick::ORIENTATION_TOPLEFT);
 			$this->resource->setImageOrientation(Imagick::ORIENTATION_TOPLEFT);
 		}
 
@@ -553,7 +681,7 @@ class Image
 				break;
 		}
 
-		if ($usingImagick) {
+		if ($driverImagick) {
 			$this->resource->setImageProperty('Exif:Orientation', Imagick::ORIENTATION_TOPLEFT);
 		}
 
@@ -561,126 +689,39 @@ class Image
 	}
 
 	/**
-	 * Returns the file extension of the specified file
-	 * @param string $path
-	 * @return string
+	 * Set background color
+	 * @param string|array $color
+	 * @return $this
 	 */
-	function getExtensionFromPath($path)
+	public function setBackgroundColor($color)
 	{
-		return pathinfo($path, PATHINFO_EXTENSION);
+		$this->driver->setBackgroundColor($color);
+		return $this;
 	}
 
 	/**
-	 * Returns the image EXIF data.
-	 * @param string $property
-	 * @param string $path
-	 * @return mixed
+	 * Normalize color
+	 * @param string|array $color
+	 * @return array RGBa value
 	 */
-	public function getExifData($property = NULL, $path = NULL)
+	public static function normalizeColor($color)
 	{
-		$data = NULL;
-
-		// path set
-		if ($path !== NULL) {
-			$this->debug("getExifData(\"$property\")\t\tcalling -> readImageExifData(". ($path  ? '../'.basename($path).')' : ''). ")");
-			$this->exifData = $this->readImageExifData($path);
-		// current image path
-		} elseif ($this->exifData === NULL) {
-			$this->debug("getExifData(\"$property\")\t\tcalling -> readImageExifData(". ($this->path  ? '../'.basename($this->path).')' : ''). ")");
-			$this->exifData = $this->readImageExifData($this->path);
-		}
-
-		if ($property !== NULL) {
-			$this->debug("getExifData(\"$property\")\t\tcalling -> getExifProperty(\"$property\"");
-			$data = $this->getExifProperty($property);
+		if (is_array($color)) {
+			$hex = self::rgba2hex($color);
+			return self::hex2rgba($hex);
 		} else {
-			$data = $this->exifData;
+			return self::hex2rgba((string)$color);
 		}
-
-		return $data;
 	}
-
-	/**
-	 * Get image property info
-	 * @param string $property
-	 * @param mixed $default
-	 * @param Closure $callback
-	 * @return mixed
-	 */
-	public function getExifProperty($property, $default = NULL, $callback = NULL)
-	{
-
-		$value = $default;
-
-		// supperted properties
-		// [0] -> named property
-		// [1] -> GD, imagick property
-		// [2] -> callback
-		$callbacks = [
-			'dateCreated' => ['DateTimeOriginal', function($val) {
-				$dt = DateTime::createFromFormat('Y:m:d H:i:s', $val, new DateTimeZone('UTC'));
-				return $dt->getTimestamp();
-			}],
-			'orientation' => ['Orientation', 'intval'],
-		];
-
-		$propertyName = NULL;
-		$propertyCallback = NULL;
-
-		if (isset($callbacks[$property])) {
-			if (is_array($callbacks[$property])) {
-
-				$item = $callbacks[$property];
-				$propertyName = !empty($item[0]) ? $item[0] : NULL;
-
-				if ($callback && is_callable($callback)) {
-					$propertyCallback = $callback;
-				} else {
-					$propertyCallback = isset($item[1]) && is_callable($item[1]) ? $item[1] : NULL;
-				}
-			} elseif (is_string($callbacks[$property])) {
-				$propertyName = $callbacks[$property];
-			}
-		} else {
-			$propertyName = str_replace('exif:', '', $property);
-		}
-
-		// read EXIF data
-		$this->debug("getExifProperty()\tproperty: $propertyName, calling -> getExifData()");
-		$exif = $this->getExifData();
-
-		if ($exif) {
-			$found = false;
-			if (isset($exif[$propertyName])) {
-				$found = true;
-			} elseif (isset($exif['exif:' . $propertyName])) {
-				$propertyName = 'exif:' . $propertyName;
-				$found = true;
-			}
-
-
-			// value found
-			if ($found) {
-				if ($propertyCallback !== NULL) {
-					$value = call_user_func($propertyCallback, $exif[$propertyName]);
-				} else {
-					$value = $exif[$propertyName];
-				}
-			}
-		}
-
-
-		return $value;
-	}
-
+	
 	/**
 	 * Opposite color
 	 * @param string $color  Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Where red, green, blue - ints 0-255, alpha - int 0-127
-	 * @param bool $inverse
+	 * Where red, green, blue - integers 0-255, alpha - integer 0-127
+	 * @param boolean $inverse
 	 * @return array
 	 */
-	public function oppositeColor($color, $inverse = false)
+	public static function oppositeColor($color, $inverse = false)
 	{
 		// sharp
 		$sharp = (is_string($color) && strpos($color, '#')===0);
@@ -699,6 +740,233 @@ class Image
 			return ($sharp ? '#' : '') . (array_sum($color) > (255*1.5)) ? '000000' : 'FFFFFF';
 		}
 	}
+
+	/**
+	 * Convert HEX value to it's color percentage representation (00 => 0%, 7F => 50%, FF => 100%)
+	 * @param string $hex value (00-FF)
+	 * @return float
+	 */
+	public function hex2percentage($hex)
+	{
+		if (is_string($hex) && strlen($hex)===2) {
+			$val = hexdec($hex);
+			return round($val/255, 1);
+		}
+		
+		return 100;
+	}
+	
+	/**
+	 * Convert percentage value to it's HEX color representation (0% => 00, 50% => 7F, 100% => FF)
+	 * @param float $percentage value (00-FF)
+	 * @return float
+	 */
+	public function percentage2hex($percentage)
+	{
+		if (is_numeric($percentage)) {
+			if ($percentage > 1) { 
+				$percentage = $percentage / 100; 
+			}
+			
+			$val = $percentage * 255;
+			return str_pad(dechex($val), 2, 0, STR_PAD_LEFT);
+		}
+		
+		return 'FF';
+	}
+
+	/**
+	 * Converts a HEX color value to its RGB equivalent
+	 * @param string|array $color
+	 * Where red, green, blue - ints 0-255, alpha - int 0-255
+	 * @return array|bool
+	 */
+	public function hex2rgba($color)
+	{
+		// default color (transparent)
+		$r = 255; $g = 255; $b = 255; $a = 1.0;
+
+		if (is_string($color)) {
+			$color = trim(strtolower($color), '#');
+			switch ($color) {
+				
+				// black
+				case 'black':
+				case '000':
+				case '0000':
+				case '000000':
+				case '000000ff':
+				case self::COLOR_BLACK:
+					list ($r, $g, $b, $a) = [0, 0, 0, 1.0];
+					break;
+
+				// white
+				case 'white':
+				case 'fff':
+				case 'ffff':
+				case 'ffffff':
+				case 'ffffffff':
+				case self::COLOR_WHITE:
+					list ($r, $g, $b, $a) = [255, 255, 255, 1.0];
+					break;
+	
+				// transparent
+				case 'transparent':
+				case '0000':
+				case '00000000':
+				case 'ffffff00':
+				case self::COLOR_TRANSPARENT:
+					list ($r, $g, $b, $a) = [255, 255, 255, 0.0];
+					break;
+				
+				default:
+					// 8-digit hexadecimal notation (with alpha)
+					if (strlen($color) === 8) {
+						list ($r, $g, $b, $a) = [hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]), self::hex2percentage($color[6].$color[7])];
+					// 6-digit hexadecimal notation (no alpha)
+					} elseif (strlen($color) === 6) {
+						list ($r, $g, $b) = [hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5])];
+					// 4-digit hexadecimal notation
+					} elseif (strlen($color) === 4) {
+						list ($r, $g, $b, $a) = [hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]), self::hex2percentage($color[3].$color[3])];
+					// 3-digit hexadecimal notation (no alpha).
+					} elseif (strlen($color) === 3) {
+						list ($r, $g, $b) = [hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2])];
+					}
+				break;
+			}
+
+		} elseif (is_array($color)) {
+			$r = isset($color[0]) && $color[0]>=0 && $color[0]<=255 ? $color[0] : 0;
+			$g = isset($color[1]) && $color[1]>=0 && $color[1]<=255 ? $color[1] : 0;
+			$b = isset($color[2]) && $color[2]>=0 && $color[2]<=255 ? $color[2] : 0;
+			$a = isset($color[3]) && $color[3]>=0 && $color[3]<=255 ? $color[3] : 0;
+		}
+
+		// rgba value
+		return ['r' => $r, 'g' => $g, 'b' => $b, 'a' => $a];
+	}
+
+	/**
+	 * Converts a RGB color value to its HEX equivalent
+	 * @param array $color
+	 * @param bool $returnArray
+	 * @return string
+	 */
+	public static function rgb2hex($color, $returnArray = false)
+	{
+		return self::rgba2hex($color, $returnArray);
+	}
+
+	/**
+	 * Converts a RGBA color value to its HEX equivalent
+	 * @param array $color
+	 * @param bool $returnArray
+	 * @return string
+	 */
+	public static function rgba2hex($color, $returnArray = false)
+	{
+		$hex = false;
+		if ($color && is_array($color)) {
+			$c = [];
+			$alpha = null;
+
+			if (isset($color['r'])) {
+				$c[0] = isset($color['r']) ? $color['r'] : 0;
+				$c[1] = isset($color['g']) ? $color['g'] : 0;
+				$c[2] = isset($color['b']) ? $color['b'] : 0;
+				if (isset($color['a'])) { $alpha = $color['a']; }
+			} else {
+				$c[0] = isset($color[0]) ? $color[0] : 0;
+				$c[1] = isset($color[1]) ? $color[1] : 0;
+				$c[2] = isset($color[2]) ? $color[2] : 0;
+				if (isset($color[3])) { $alpha = $color[3]; }
+			}
+			
+			$hex = sprintf("#%02x%02x%02x", $c[0], $c[1], $c[2]);
+			if ($alpha !== null) {
+				$hex .= self::percentage2hex($alpha);
+			}
+		}
+
+		return $hex;
+	}
+
+	/**
+	 * Reads the EXIF headers from an image file
+	 * @param string $file The location of the image file. This can either be 
+	 * a path to the file (stream wrappers are also supported as usual) 
+	 * or a stream resource.
+	 * @param string $requiredSections
+	 * @param bool $thumbnail bool $thumbnail <p>When set to <b><code>TRUE</code></b> 
+	 * the thumbnail itself is read. Otherwise, only the tagged data is read.</p>
+	 * @return bool|array It returns an associative array where the array indexes 
+	 * are the header names and the array values are the values associated with 
+	 * those headers. If no data can be returned, exif_read_data() will return false.
+	 */
+	public function readExifData($file = null, $requiredSections = null, $thumbnail = false)
+	{
+		return $this->driver->readExifData($file, $requiredSections, $thumbnail);
+	}
+
+	/**
+	 * Get image EXIF property
+	 * @param string $property
+	 * @param mixed $default
+	 * @param Closure $callback
+	 * @return mixed
+	 */
+	public function getExifData($property = null, $default = null, $callback = null)
+	{
+		return $this->driver->getExifData($property, $default, $callback);
+	}
+
+	/**
+	 * Returns image date of creation
+	 * @param string $format
+	 * @return string|DateTime
+	 */
+	public function getDateCreated($format = null)
+	{
+		return $this->driver->getDateCreated($format);
+	}
+	
+	/**
+	 * Returns image date of creation
+	 * @param string $format
+	 * @return string|DateTime
+	 */
+	public function getGps($format = null)
+	{
+		return $this->driver->getGps($format);
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+	
+
 
 
 
@@ -727,7 +995,7 @@ class Image
 	public function setWatermark($path, $config = [])
 	{
 		// already loaded
-		if (self::$watermark !== NULL) {
+		if (self::$watermark !== null) {
 			return self::$watermark!==false;
 		}
 
@@ -745,7 +1013,7 @@ class Image
 			'position' => (!empty($cfg['position']) ? $cfg['position'] : 'middle-bottom'),
 			'offsetX' => (!empty($cfg['offsetX']) ? $cfg['offsetX'] : 0),
 			'offsetY' => (!empty($cfg['offsetY']) ? $cfg['offsetY'] : -15),
-			'image' => NULL,
+			'image' => null,
 		];
 
 		return $this->loadImageWatermark($path);

@@ -17,25 +17,27 @@ class ImageGd extends BaseImage
 {
 
 	protected static $driver = Image::DRIVER_GD;
-	
+
 
 	////////////////////////////////////////////////////////////////////////////
 	// Loaders
 	////////////////////////////////////////////////////////////////////////////
-	
-	protected function loadImageFromFile($file)
+
+	protected function _loadFromFile($file)
 	{
 		switch ($this->mime_type) {
 			case 'image/jpeg':
-				$this->resource = imagecreatefromjpeg($file);
-				break;
+				$this->resource = @imagecreatefromjpeg($file);
+			break;
 			case 'image/png':
-				$this->resource = imagecreatefrompng($file);
-				imagealphablending($this->resource, false);
-				imagesavealpha($this->resource, true);
-				break;
+				$this->resource = @imagecreatefrompng($file);
+				if ($this->resource) {
+					imagealphablending($this->resource, false);
+					imagesavealpha($this->resource, true);
+				}
+			break;
 			case 'image/gif':
-				$gif = imagecreatefromgif($file);
+				$gif = @imagecreatefromgif($file);
 				if ($gif) {
 					$width = imagesx($gif);
 					$height = imagesy($gif);
@@ -48,105 +50,69 @@ class ImageGd extends BaseImage
 				}
 				break;
 			default:
-				throw new Exception('Unknown image type: '. $this->type);
+				throw new Exception('Unknown image type: '. $this->mime_type);
 		}
-		
+
+		if (!$this->resource) {
+			throw new Exception('Failed to read image data.');
+		}
+
 		// convert pallete images to true color images
 		imagepalettetotruecolor($this->resource);
-		
+
 		// Load exif data from JPEG images
 		//if($this->mimeType === 'image/jpeg' && function_exists('exif_read_data')) {
 		//	$this->exif = @exif_read_data($file);
 		//}
 	}
-	
-	public function loadImageFromString()
+
+	protected function _ping($filename = null)
 	{
-		$this->loadImageFromFile('data://application/octet-stream;base64,' . base64_encode($this->dataString));
-	}
-
-	/**
-	 * Fetch basic attributes about the image
-	 * @param string $file Filename or image data string
-	 * @throws Exception
-	 */
-	protected function pingImage($file = null)
-	{
-		$result = false;
-/*
-    [path] => elop_345x138.png
-    [width] => 345
-    [height] => 138
-    [type] => 3
-    [mime_type] => image/png
-    [extension] => png
-    [orientation] => landscape
- */
-		if (!empty($file)) {
-			
-			$mimeType = null;
-			$finfo = @finfo_open(FILEINFO_MIME_TYPE);
-			if ($finfo) {
-				$mimeType = finfo_file($finfo, $file);
-
-				if (strstr($mimeType, 'image') === false) {
-					throw new Exception('Unsupported file type.');
-				}
-			} else {
-				throw new \Exception("File not found. ($file)");
-			}
-			
-			$this->path = $file;
-			$info = getimagesize($file);
-
-			if ($info) {
-				$result = true;
-				$this->w = $info[0];
-				$this->h = $info[1];
-				$this->type = $info[2];
-				$this->mime_type = $info['mime'];
+		// filename
+		if ($filename) {
+			$info = getimagesize($filename);
+			if (!$info) {
+				throw new Exception('Failed to read image data.');
 			}
 
+			$this->w = $info[0];
+			$this->h = $info[1];
+			$this->type = $info[2];
+			$this->mime_type = $info['mime'];
+			$this->orientation = $this->getOrientation();
+
+			// check mime type
+			if (strstr($this->mime_type, 'image/') === false) {
+				throw new Exception('Unsupported file type.');
+			}
+
+		// resource
 		} elseif ($this->isResource()) {
-			
-			$result = true;
-			//$info = getimagesize($filename);
+
 			$this->w = imagesx($this->resource);
 			$this->h = imagesy($this->resource);
-			
+
 			//$this->type = $info[2];
 			//$this->mime_type = $info['mime'];
 			//$this->original_orientation = $this->getOrientation($this->original_w, $this->original_h);
 			//$this->dateCreated = $image->getExifData('dateCreated', NULL, $image->path);
 			//$this->extension = str_replace(['jpeg'], ['jpg'], image_type_to_extension($info[2], false));
-
-		}
-		
-		if ($result) {
-			switch ($this->mime_type) {
-				case 'image/jpeg':
-				case 'image/x-jpeg':
-					$this->mime_type = 'image/jpeg';
-					$this->type = IMAGETYPE_JPEG;
-					$this->extension = 'jpg';
-					break;
-				case 'image/png':
-					$this->type = IMAGETYPE_PNG;
-					$this->extension = 'png';
-					break;
-				case 'image/gif':
-					$this->type = IMAGETYPE_GIF;
-					$this->extension = 'gif';
-					break;
-				default:
-					throw new Exception('Unknown image type: '. $this->mime_type);
-			}
-			
-			$this->orientation = $this->getOrientation();
-
 		}
 
-		return $result;
+		switch ($this->mime_type) {
+			case 'image/jpeg':
+			case 'image/x-jpeg':
+				$this->extension = 'jpg';
+				break;
+			case 'image/png':
+				$this->extension = 'png';
+				break;
+			case 'image/gif':
+				$this->extension = 'gif';
+				break;
+			default:
+				throw new Exception('Unsupported image type. ('. $this->mime_type .')');
+		}
 	}
 
 	/**
@@ -154,7 +120,7 @@ class ImageGd extends BaseImage
 	 * @param resource $resource
 	 * @return $this
 	 */
-	protected function destroyResource($resource)
+	protected function _destroy($resource)
 	{
 		if ($resource && is_resource($resource) && 'gd'===get_resource_type($resource)) {
 			imagedestroy($resource);
@@ -167,87 +133,52 @@ class ImageGd extends BaseImage
 	 * Save an image. The resulting format will be determined by the file extension.
 	 * @param string $filename
 	 * @param int $quality
-	 * @param string $mimeType
-	 * @throws Exception
+	 * @param string $imageType
+	 * @return bool
 	 */
-	protected function saveImage($filename, $quality, $mimeType)
+	protected function _save($filename, $quality, $mimeType)
 	{
 		switch ($mimeType) {
 			case 'image/gif':
-				return imagegif($this->resource, $filename);
+				return @imagegif($this->resource, $filename);
 			case 'image/jpeg':
-				return imagejpeg($this->resource, $filename, $quality);
+				return @imagejpeg($this->resource, $filename, $quality);
 			case 'image/png':
-				return imagepng($this->resource, $filename, round(9 * $quality / 100));
+				return @imagepng($this->resource, $filename, round(9 * $quality / 100));
 			default:
-				throw new Exception('Unsupported format');
+				return false;
 		}
 	}
 
 	/**
 	 * Outputs image without saving
 	 * @param int $quality Output image quality in percents 0-100
-	 * @param string $mimeType 
+	 * @param string $mimeType
+	 * @return array
 	 * @throws Exception
 	 */
-	protected function outputImage($quality, $mimeType)
+	protected function _output($quality, $mimeType)
 	{
+		$result = false;
 		ob_start();
+
 		switch ($mimeType) {
 			case 'image/gif':
-				imagegif($this->resource);
+				$result = imagegif($this->resource);
 				break;
 			case 'image/jpeg':
-				imagejpeg($this->resource, null, $quality);
+				$result = imagejpeg($this->resource, null, $quality);
 				break;
 			case 'image/png':
-				imagepng($this->resource, null, round(9 * $quality / 100));
+				$result = imagepng($this->resource, null, round(9 * $quality / 100));
 				break;
 			default:
 				throw new Exception('Unsupported image format: ' . $mimeType);
 		}
-		
+
 		$data = ob_get_clean();
 
-		return [
-			'mime_type' => $mimeType,
-			'data' => $data,
-		];
-	}
-	
-	/**
-	 * Generates a base64 string.
-	 * @param integer $quality Image quality as a percentage
-	 * @param string $mimeType The image format to output as a mime type.
-	 * @return string Returns a string containing a data URI.
-	 */
-	public function imageToString($quality, $mimeType)
-	{	
-        // Begin capturing the byte stream
-        ob_start();
-
-        // generate the byte stream
-        $this->outputImage($quality, $mimeType);
-
-        // and finally retrieve the byte stream
-        return ob_get_clean();
-	}
-
-	/**
-	 * Revert an image
-	 * @return CImage
-	 */
-	protected function revertImage()
-	{
-		// destroy working image
-		$this->destroyResource();
-
-		$dimensions = $this->imageOriginal->getDimensions();
-
-		$this->resource = imagecreatetruecolor($dimensions[0], $dimensions[1]);
-		imagecopy($this->resource, $this->imageOriginal->resource, 0, 0, 0, 0, $dimensions[0], $dimensions[1]);
-
-		return $this;
+		return $result ? ['mime_type' => $mimeType, 'data' => $data] : false;
 	}
 
 	/**
@@ -256,7 +187,7 @@ class ImageGd extends BaseImage
 	 * @param int $height
 	 * @return void
 	 */
-	protected function resizeImage($width, $height): void
+	protected function _resize($width, $height)
 	{
 		// Generate new GD image
 		$new = imagecreatetruecolor($width, $height);
@@ -286,88 +217,6 @@ class ImageGd extends BaseImage
 	}
 
 	/**
-	 * Rotates an image.
-	 * @param int $angle Rotation angle in degrees. Supports negative values.
-	 * @param mixed $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
-	 * Transparent by default.
-	 * @return void
-	 */
-	public function rotateImage($angle, $bgColor): void
-	{
-		// fix angle value
-		$angle = $angle < 0 ? abs($angle) : 360 - $angle;
-		$rgba = $this->convertColor($bgColor);
-
-		// perform the rotation
-		if ($this->mime_type === 'image/png') {
-			$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);
-			$rotated = imagerotate($this->resource, $angle, $transparent, 1);
-			$w = imagesx($rotated);
-			$h = imagesy($rotated);
-
-			$new = imagecreatetruecolor($w, $h);
-			$bg = imagecolorallocatealpha($new, $rgba['r'], $rgba['g'], $rgba['b'], $rgba['a']);
-			imagefill($new, 0, 0, $bg);
-			imagecopy($new, $rotated, 0, 0, 0, 0, $w, $h);
-			imagealphablending($new, false);
-			imagesavealpha($new, true);
-			imagedestroy($rotated);
-			$rotated = null;
-
-			$this->resource = $new; 
-		} else {
-			$bg = imagecolorallocatealpha($this->resource, $rgba['r'], $rgba['g'], $rgba['b'], $rgba['a']);
-			$this->resource = imagerotate($this->resource, $angle, $bg);
-		}
-	}
-
-	/**
-	 * Flips an image using a given mode
-	 * @param int $mode
-	 * @return void
-	 */
-	protected function flipImage($mode): void
-	{
-		$flipMode = null;
-
-		switch ($mode) {
-			case IMG_FLIP_HORIZONTAL:
-			case Image::FLIP_HORIZONTAL:
-				$flipMode = IMG_FLIP_HORIZONTAL;
-				break;
-			case IMG_FLIP_VERTICAL:
-			case Image::FLIP_VERTICAL:
-				$flipMode = IMG_FLIP_VERTICAL;
-				break;
-			case IMG_FLIP_BOTH:
-			case Image::FLIP_BOTH:
-				$flipMode = IMG_FLIP_BOTH;
-				break;
-		}
-
-		if ($flipMode) {
-			imageflip($this->resource, $flipMode);
-		}
-	}
-
-	/**
-	 * Set background color
-	 * @param string|array $color
-	 * @return $this
-	 */
-	protected function setImageBackgroundColor($color)
-	{	
-		$bg = imagecreatetruecolor($this->w, $this->h);
-		$color = imagecolorallocate($bg, $this->bg_color['r'], $this->bg_color['g'], $this->bg_color['b']);
-		imagefill($bg, 0, 0, $color);
-		imagecopy($bg, $this->resource, 0, 0, 0, 0, $this->w, $this->h);
-		imagecopy($this->resource, $bg, 0, 0, 0, 0, $this->w, $this->h);
-		imagedestroy($bg);
-
-		return $this;
-	}
-	
-	/**
 	 * Extracts a region of the image.
 	 * @param int $x
 	 * @param int $y
@@ -375,7 +224,7 @@ class ImageGd extends BaseImage
 	 * @param int $height
 	 * @return void
 	 */
-	protected function cropImage($x, $y, $width, $height): void
+	protected function _crop($x, $y, $width, $height): void
 	{
 		// new image
 		$new = imagecreatetruecolor($width, $height);
@@ -410,39 +259,227 @@ class ImageGd extends BaseImage
 	}
 
 	/**
-	 * Crop
+	 * Thumbnail
 	 * @param int $width
 	 * @param int $height
+	 * @param bool $fill
 	 * @param bool $allowEnlarge
 	 */
-	public function thumbnailImage($width, $height, $allowEnlarge = false)
+	protected function _thumbnail($width, $height, $fill = false, $allowEnlarge = false)
 	{
 		// new image
 		$thumb = imagecreatetruecolor($width, $height);
-
-		imagesavealpha($thumb, true);
-		imagealphablending($thumb, false);
+		$bgColor = null;
 
 		if (!empty($this->bg_color)) {
-			$bgColor = imagecolorallocate($thumb, $this->bg_color['r'], $this->bg_color['g'], $this->bg_color['b']);
-			imagefill($thumb, 0, 0, $bgColor);
+			$color = $this->bg_color;
+
+			// alpha
+			if ($color['a'] < 1.0) {
+
+				imagealphablending($thumb, true);
+				imagesavealpha($thumb, true);
+
+				// alpha channel: php requires value between 0 and 127
+				$alpha = (1 - $color['a']) * 127;
+
+				$bgColor = imagecolorallocatealpha($thumb, $color['r'], $color['g'], $color['b'], $alpha);
+				imagecolortransparent($thumb, $bgColor);
+			// no alpha
+			} else {
+				$bgColor = imagecolorallocate($thumb, $color['r'], $color['g'], $color['b']);
+			}
 		} else {
 			if ($this->mime_type === 'image/png') {
+				imagealphablending($thumb, false);
+				imagesavealpha($thumb, true);
 				$bgColor = imagecolorallocatealpha($thumb, 0, 0, 0, 127);
-				imagefill($thumb, 0, 0, $bgColor);
 			}
 		}
-		
-		// resize to best fit
-		$this->resizeToBestFit($width, $height, $allowEnlarge);
+
+		//imagecolortransparent($thumb);
+		if ($bgColor) {
+			imagefill($thumb, 0, 0, $bgColor);
+		}
+
+		// determine resize values
+		$srcRatio = $this->w / $this->h;
+		$dstRatio = $width / $height;
+
+		if ($fill === true) {
+			if ($srcRatio >= $dstRatio) {
+				$this->resizeToHeight($height, $allowEnlarge);
+			} else {
+				$this->resizeToWidth($width, $allowEnlarge);
+			}
+		} else {
+			if ($srcRatio >= $dstRatio) {
+				$this->resizeToWidth($width, $allowEnlarge);
+			} else {
+				$this->resizeToHeight($height, $allowEnlarge);
+			}
+		}
 
 		$x = ($width - $this->w) / 2;
 		$y = ($height - $this->h) / 2;
 
-		imagecopyresampled($thumb, $this->resource, $x, $y, 0, 0, $this->w, $this->h, $this->w, $this->h);
+		//imagecopyresampled($thumb, $this->resource, $x, $y, 0, 0, $this->w, $this->h, $this->w, $this->h);
+		imagecopy($thumb, $this->resource, $x, $y, 0, 0, $this->w, $this->h);
 		imagedestroy($this->resource);
 		$this->resource = $thumb;
 	}
+	
+	/**
+	 * Flips an image using a given mode
+	 * @param int $mode
+	 * @return void
+	 */
+	protected function _flip($mode): void
+	{
+		$flipMode = null;
+
+		switch ($mode) {
+			case IMG_FLIP_HORIZONTAL:
+			case Image::FLIP_HORIZONTAL:
+				$flipMode = IMG_FLIP_HORIZONTAL;
+				break;
+			case IMG_FLIP_VERTICAL:
+			case Image::FLIP_VERTICAL:
+				$flipMode = IMG_FLIP_VERTICAL;
+				break;
+			case IMG_FLIP_BOTH:
+			case Image::FLIP_BOTH:
+				$flipMode = IMG_FLIP_BOTH;
+				break;
+		}
+
+		if ($flipMode) {
+			imageflip($this->resource, $flipMode);
+		}
+	}
+	
+	/**
+	 * Rotate an image with a given angle and background color
+	 * @param float $angle <p>Rotation angle, in degrees. The rotation angle is 
+	 * interpreted as the number of degrees to rotate the image anticlockwise.</p>
+	 * @param string|array $bgd_color <p>Specifies the color of the uncovered 
+	 * zone after the rotation</p> Transparent by default.
+	 * @return void
+	 */
+	public function _rotate($angle, $bgColor)
+	{
+		// fix angle value
+		$angle = $angle < 0 ? abs($angle) : 360 - $angle;
+		$rgba = Image::normalizeColor($bgColor);
+		$alpha = (1 - $rgba['a']) * 127;
+
+		// perform the rotation
+		if (in_array($this->mime_type, ['image/png', 'image/gif'])) {
+			
+			$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);
+			$rotated = imagerotate($this->resource, $angle, $transparent, 1);
+			imagecolortransparent($rotated);
+
+			$w = imagesx($rotated);
+			$h = imagesy($rotated);
+
+			$new = imagecreatetruecolor($w, $h);
+			imagealphablending($new, false);
+			imagesavealpha($new, true);			
+
+			$bg = imagecolorallocatealpha($new, $rgba['r'], $rgba['g'], $rgba['b'], $rgba['a']);
+			imagefill($new, 0, 0, $bg);
+
+			imagecopy($new, $rotated, 0, 0, 0, 0, $w, $h);
+			imagedestroy($rotated); $rotated = null;
+
+			$this->resource = $new;
+		} else {
+			$bg = imagecolorallocatealpha($this->resource, $rgba['r'], $rgba['g'], $rgba['b'], $alpha);
+			$this->resource = imagerotate($this->resource, $angle, $bg);
+		}
+	}
+
+	/**
+	 * Set background color_
+	 * @param string|array $color
+	 * @return $this
+	 */
+	protected function _setBackgroundColor($color)
+	{
+		$bg = imagecreatetruecolor($this->w, $this->h);
+
+		// alpha
+		if ($color['a'] < 1.0) {
+
+			if ($this->mime_type === 'image/png') {
+				imagealphablending($bg, false);
+				imagesavealpha($bg, true);
+			}
+
+			// alpha channel: php requires value between 0 and 127
+			$alpha = (1 - $color['a']) * 127;
+			$bgColor = imagecolorallocatealpha($bg, $color['r'], $color['g'], $color['b'], $alpha);
+		// no alpha
+		} else {
+			$bgColor = imagecolorallocate($bg, $color['r'], $color['g'], $color['b']);
+		}
+
+		imagefill($bg, 0, 0, $bgColor);
+		imagecopy($bg, $this->resource, 0, 0, 0, 0, $this->w, $this->h);
+		$this->resource = $bg;
+
+		return $this;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	/**
+	 * Reads the EXIF headers from an image file
+	 * @param string $file The location of the image file. This can either be
+	 * a path to the file (stream wrappers are also supported as usual)
+	 * or a stream resource.
+	 * @param string $requiredSections
+	 * @param bool $thumbnail bool $thumbnail <p>When set to <b><code>TRUE</code></b>
+	 * the thumbnail itself is read. Otherwise, only the tagged data is read.</p>
+	 * @return bool|array It returns an associative array where the array indexes
+	 * are the header names and the array values are the values associated with
+	 * those headers. If no data can be returned, exif_read_data() will return false.
+	 */
+	public function _readExifData($file, $requiredSections = null, $thumbnail = false)
+	{
+		if ($file && extension_loaded('exif')) {
+			if ($requiredSections===null) {
+				$requiredSections = 'FILE,COMPUTED,IFD0,COMMENT,EXIF,GPS';
+			}
+
+			$data = @exif_read_data($file, $requiredSections, false, $thumbnail);
+			return is_array($data) ? $data : false;
+		}
+
+		return false;
+	}
+
 
 
 
@@ -461,20 +498,7 @@ class ImageGd extends BaseImage
 	/// 999999999 OOOOLD
 
 
-	/**
-	 * Reads the image EXIF data.
-	 * @param string $path
-	 * @return bool|array
-	 */
-	public function readImageExifData($path)
-	{
-		if ($path && extension_loaded('exif')) {
-			$data = @exif_read_data($path);
-			return is_array($data) ? $data : false;
-		}
 
-		return false;
-	}
 
 
 
