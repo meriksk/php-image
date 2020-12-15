@@ -14,7 +14,7 @@ use meriksk\PhpImage\DriverFactory;
 class Image
 {
 
-    const COLOR_TRANSPARENT = array(255, 255, 255, 0.0);
+    const COLOR_TRANSPARENT = -1;
     const COLOR_WHITE = 'FFFFFF';
     const COLOR_BLACK = '000000';
 
