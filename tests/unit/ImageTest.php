@@ -946,7 +946,10 @@ class ImageTest extends ImageTestCase
 		
 		// multiple properties (callback is disabled in current version)
 		$value = $image->getExifData(['DateTimeOriginal', 'ExposureTime']);
-		$this->assertEquals(['2000:11:07 10:41:43', '1/345'], $value);
+		$this->assertEquals(array(
+			'DateTimeOriginal' => '2000:11:07 10:41:43', 
+			'ExposureTime' => '1/345',
+		), $value);
 
 		// using named properties
 		$dateCrated = $image->getExifData('date_created');

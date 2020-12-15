@@ -65,7 +65,7 @@ abstract class BaseImage
 
 		// store info
 		if (stripos($filename, 'http')===false) {
-			$this->path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, trim($filename));
+			$this->path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, trim($filename));
 		} else {
 			$this->path = trim($filename);
 		}
@@ -167,9 +167,9 @@ abstract class BaseImage
 	 */
 	public function getInfo($extendedInfo = false)
 	{
-		$info = [];
+		$info = array();
 		if (!empty($this->mime_type)) {
-			$info = [
+			$info = array(
 				'path' => $this->path,
 				'width' => $this->w,
 				'height' => $this->h,
@@ -177,7 +177,7 @@ abstract class BaseImage
 				'mime_type' => $this->mime_type,
 				'extension' => $this->extension,
 				'orientation' => $this->orientation,
-			];
+			);
 			
 			if ($extendedInfo === true) {
 				$info['exif'] = $this->readExifData($this->path);
@@ -263,7 +263,7 @@ abstract class BaseImage
 	public function getDimensions()
 	{
 		if ($this->w>0 && $this->h>0) {
-			return [$this->w, $this->h];
+			return array($this->w, $this->h);
 		}
 
 		return false;
@@ -419,7 +419,7 @@ abstract class BaseImage
 			$h = $height <= $this->h ? $height : $this->h;
 		}
 
-		return [$w, $h];
+		return array($w, $h);
 	}
 
 	/**
@@ -722,7 +722,7 @@ abstract class BaseImage
 			$y = $y>=0 ? $y : 0;
 		}
 
-        return [$x, $y];
+        return array($x, $y);
     }
 
 	/**
@@ -904,18 +904,18 @@ abstract class BaseImage
 		$value = $default;
 		
 		// props 
-		$props = [];
+		$props = array();
 		$allowCallback = true;
 
 		if (is_array($property)) {
 			$props = $property;
 			$allowCallback = false;
 		} elseif (is_string($property)) {
-			$props = [$property];
+			$props = array($property);
 		}
 		
 		// named properties
-		$namedProperties = [
+		$namedProperties = array(
 			'model' => 'Model',
 			'description' => 'ImageDescription',
 			'date_created' => 'DateTimeOriginal',
@@ -929,9 +929,9 @@ abstract class BaseImage
 			'flash' => 'Flash',
 			'focal_length' => 'FocalLength',
 			'comment' => 'UserComment',
-		];
+		);
 
-		$value = [];
+		$value = array();
 		foreach ($props as $prop) {
 			if (isset($namedProperties[$prop])) {
 				$prop = $namedProperties[$prop];
@@ -949,7 +949,7 @@ abstract class BaseImage
 			// custom callback
 			if ($allowCallback) {
 				if ($callback && $callback instanceof \Closure) {
-					$val = call_user_func_array($callback, [$val, $this->exif]);
+					$val = call_user_func_array($callback, array($val, $this->exif));
 				}
 			}
 			
@@ -985,15 +985,15 @@ abstract class BaseImage
 	{
 		
 		// get lat and lng (format: [coord, hemisphere])
-		$lat = $this->getExifData(['GPSLatitude', 'GPSLatitudeRef']);
-		$lng = $this->getExifData(['GPSLongitude', 'GPSLongitudeRef']);
+		$lat = $this->getExifData(array('GPSLatitude', 'GPSLatitudeRef'));
+		$lng = $this->getExifData(array('GPSLongitude', 'GPSLongitudeRef'));
 		
 		if (empty($lat) || empty($lng)) {
 			return null;
 		}
 		
-		$gps = [];
-		foreach([$lat, $lng] as $index => $coordinate) {
+		$gps = array();
+		foreach(array($lat, $lng) as $index => $coordinate) {
 			/* @var $coordinate array */
 
 			if (!is_array($coordinate)) {
@@ -1042,11 +1042,11 @@ abstract class BaseImage
 					$minutes -= 60*floor($minutes/60.0);
 				}
 				
-				$gps[$key] = [
+				$gps[$key] = array(
 					'degrees' => $degrees,
 					'minutes' => $minutes, 
 					'seconds' => $seconds
-				];
+				);
 				
 			} else {
 				

@@ -9,7 +9,7 @@ use Exception;
 // getimagesizefromstring — Get the size of an image from a string
 // (PHP 5 >= 5.4.0)
 if (!function_exists('getimagesizefromstring')) {
-	function getimagesizefromstring($data, &$imageinfo = []) {
+	function getimagesizefromstring($data, &$imageinfo = array()) {
 		$uri = 'data://application/octet-stream;base64,' . base64_encode($data);
 		return getimagesize($uri, $imageinfo);
 	}

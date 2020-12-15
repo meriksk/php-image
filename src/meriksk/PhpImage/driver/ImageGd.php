@@ -178,7 +178,7 @@ class ImageGd extends BaseImage
 
 		$data = ob_get_clean();
 
-		return $result ? ['mime_type' => $mimeType, 'data' => $data] : false;
+		return $result ? array('mime_type' => $mimeType, 'data' => $data) : false;
 	}
 
 	/**
@@ -374,7 +374,7 @@ class ImageGd extends BaseImage
 		$alpha = (1 - $rgba['a']) * 127;
 
 		// perform the rotation
-		if (in_array($this->mime_type, ['image/png', 'image/gif'])) {
+		if (in_array($this->mime_type, array('image/png', 'image/gif'))) {
 			
 			$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);
 			$rotated = imagerotate($this->resource, $angle, $transparent, 1);
@@ -566,7 +566,7 @@ class ImageGd extends BaseImage
 	 *
 	 * @return CImage
 	 */
-	public function overlay($overlay, $position = 'center', array $options = [])
+	public function overlay($overlay, $position = 'center', array $options = array())
 	{
 		// Load overlay image
 		if (!($overlay instanceof CImage)) {
@@ -574,13 +574,13 @@ class ImageGd extends BaseImage
 		}
 
 		// settings
-		$settings = array_merge([
+		$settings = array_merge(array(
 			'opacity' => 1,
 			'offsetX' => NULL,
 			'offsetY' => NULL,
 			'maxWidth' => NULL,
 			'maxHeight' => NULL,
-		], $options);
+		), $options);
 
 		// check settings
 		$settings['opacity'] = is_numeric($settings['opacity']) ? intval($settings['opacity']) * 100 : 1;
@@ -678,7 +678,7 @@ class ImageGd extends BaseImage
 	 * @return CImage
 	 * @throws Exception
 	 */
-	public function text($text, $fontFile, $fontSize = 12, $color = true, $position = 'center', array $options = [])
+	public function text($text, $fontFile, $fontSize = 12, $color = true, $position = 'center', array $options = array())
 	{
 
 		// check font
@@ -687,7 +687,7 @@ class ImageGd extends BaseImage
 		}
 
 		// additional options
-		$opt = array_merge([
+		$opt = array_merge(array(
 			'x' => NULL,
 			'y' => NULL,
 			'offsetX' => 0,
@@ -698,7 +698,7 @@ class ImageGd extends BaseImage
 			'letterSpacing' => 0,
 			// @todo - this method could be improved to support the text angle
 			'angle' => 0,
-		], $options);
+		), $options);
 
 		// determine textbox size
 		$box = imagettfbbox($fontSize, $opt['angle'], $fontFile, $text);
@@ -777,7 +777,7 @@ class ImageGd extends BaseImage
 		}
 
 		// colors array
-		$colorArr = [];
+		$colorArr = array();
 
 		// Determine text color
 		if ($color === true || $color === 'auto') {

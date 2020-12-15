@@ -14,7 +14,7 @@ use meriksk\PhpImage\DriverFactory;
 class Image
 {
 
-    const COLOR_TRANSPARENT = [255, 255, 255, 0.0];
+    const COLOR_TRANSPARENT = array(255, 255, 255, 0.0);
     const COLOR_WHITE = 'FFFFFF';
     const COLOR_BLACK = '000000';
 
@@ -610,7 +610,7 @@ class Image
 	 */
 	public function flip($mode = self::FLIP_VERTICAL)
 	{
-		if (!in_array($mode, [Image::FLIP_HORIZONTAL, Image::FLIP_VERTICAL, Image::FLIP_BOTH])) {
+		if (!in_array($mode, array(Image::FLIP_HORIZONTAL, Image::FLIP_VERTICAL, Image::FLIP_BOTH))) {
 			throw new InvalidArgumentException('Invalid flip mode.');
 		}
 
@@ -797,7 +797,7 @@ class Image
 				case '000000':
 				case '000000ff':
 				case self::COLOR_BLACK:
-					list ($r, $g, $b, $a) = [0, 0, 0, 1.0];
+					list ($r, $g, $b, $a) = array(0, 0, 0, 1.0);
 					break;
 
 				// white
@@ -807,7 +807,7 @@ class Image
 				case 'ffffff':
 				case 'ffffffff':
 				case self::COLOR_WHITE:
-					list ($r, $g, $b, $a) = [255, 255, 255, 1.0];
+					list ($r, $g, $b, $a) = array(255, 255, 255, 1.0);
 					break;
 	
 				// transparent
@@ -816,22 +816,22 @@ class Image
 				case '00000000':
 				case 'ffffff00':
 				case self::COLOR_TRANSPARENT:
-					list ($r, $g, $b, $a) = [255, 255, 255, 0.0];
+					list ($r, $g, $b, $a) = array(255, 255, 255, 0.0);
 					break;
 				
 				default:
 					// 8-digit hexadecimal notation (with alpha)
 					if (strlen($color) === 8) {
-						list ($r, $g, $b, $a) = [hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]), self::hex2percentage($color[6].$color[7])];
+						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]), self::hex2percentage($color[6].$color[7]));
 					// 6-digit hexadecimal notation (no alpha)
 					} elseif (strlen($color) === 6) {
-						list ($r, $g, $b) = [hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5])];
+						list ($r, $g, $b) = array(hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]));
 					// 4-digit hexadecimal notation
 					} elseif (strlen($color) === 4) {
-						list ($r, $g, $b, $a) = [hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]), self::hex2percentage($color[3].$color[3])];
+						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]), self::hex2percentage($color[3].$color[3]));
 					// 3-digit hexadecimal notation (no alpha).
 					} elseif (strlen($color) === 3) {
-						list ($r, $g, $b) = [hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2])];
+						list ($r, $g, $b) = array(hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]));
 					}
 				break;
 			}
@@ -844,7 +844,7 @@ class Image
 		}
 
 		// rgba value
-		return ['r' => $r, 'g' => $g, 'b' => $b, 'a' => $a];
+		return array('r' => $r, 'g' => $g, 'b' => $b, 'a' => $a);
 	}
 
 	/**
@@ -868,7 +868,7 @@ class Image
 	{
 		$hex = false;
 		if ($color && is_array($color)) {
-			$c = [];
+			$c = array();
 			$alpha = null;
 
 			if (isset($color['r'])) {
@@ -978,10 +978,10 @@ class Image
 	 */
 	public function removeAccents($string)
 	{
-		$arr = [
-			'before' => ['À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É', 'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô', 'Õ', 'Ö', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ', 'ç', 'è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ñ', 'ò', 'ó', 'ô', 'õ', 'ö', 'ø', 'ù', 'ú', 'û', 'ü', 'ý', 'ÿ', 'Ā', 'ā', 'Ă', 'ă', 'Ą', 'ą', 'Ć', 'ć', 'Ĉ', 'ĉ', 'Ċ', 'ċ', 'Č', 'č', 'Ď', 'ď', 'Đ', 'đ', 'Ē', 'ē', 'Ĕ', 'ĕ', 'Ė', 'ė', 'Ę', 'ę', 'Ě', 'ě', 'Ĝ', 'ĝ', 'Ğ', 'ğ', 'Ġ', 'ġ', 'Ģ', 'ģ', 'Ĥ', 'ĥ', 'Ħ', 'ħ', 'Ĩ', 'ĩ', 'Ī', 'ī', 'Ĭ', 'ĭ', 'Į', 'į', 'İ', 'ı', 'Ĳ', 'ĳ', 'Ĵ', 'ĵ', 'Ķ', 'ķ', 'Ĺ', 'ĺ', 'Ļ', 'ļ', 'Ľ', 'ľ', 'Ŀ', 'ŀ', 'Ł', 'ł', 'Ń', 'ń', 'Ņ', 'ņ', 'Ň', 'ň', 'ŉ', 'Ō', 'ō', 'Ŏ', 'ŏ', 'Ő', 'ő', 'Œ', 'œ', 'Ŕ', 'ŕ', 'Ŗ', 'ŗ', 'Ř', 'ř', 'Ś', 'ś', 'Ŝ', 'ŝ', 'Ş', 'ş', 'Š', 'š', 'Ţ', 'ţ', 'Ť', 'ť', 'Ŧ', 'ŧ', 'Ũ', 'ũ', 'Ū', 'ū', 'Ŭ', 'ŭ', 'Ů', 'ů', 'Ű', 'ű', 'Ų', 'ų', 'Ŵ', 'ŵ', 'Ŷ', 'ŷ', 'Ÿ', 'Ź', 'ź', 'Ż', 'ż', 'Ž', 'ž', 'ſ', 'ƒ', 'Ơ', 'ơ', 'Ư', 'ư', 'Ǎ', 'ǎ', 'Ǐ', 'ǐ', 'Ǒ', 'ǒ', 'Ǔ', 'ǔ', 'Ǖ', 'ǖ', 'Ǘ', 'ǘ', 'Ǚ', 'ǚ', 'Ǜ', 'ǜ', 'Ǻ', 'ǻ', 'Ǽ', 'ǽ', 'Ǿ', 'ǿ', 'Ά', 'ά', 'Έ', 'έ', 'Ό', 'ό', 'Ώ', 'ώ', 'Ί', 'ί', 'ϊ', 'ΐ', 'Ύ', 'ύ', 'ϋ', 'ΰ', 'Ή', 'ή'],
-			'after' => ['A', 'A', 'A', 'A', 'A', 'A', 'AE', 'C', 'E', 'E', 'E', 'E', 'I', 'I', 'I', 'I', 'D', 'N', 'O', 'O', 'O', 'O', 'O', 'O', 'U', 'U', 'U', 'U', 'Y', 's', 'a', 'a', 'a', 'a', 'a', 'a', 'ae', 'c', 'e', 'e', 'e', 'e', 'i', 'i', 'i', 'i', 'n', 'o', 'o', 'o', 'o', 'o', 'o', 'u', 'u', 'u', 'u', 'y', 'y', 'A', 'a', 'A', 'a', 'A', 'a', 'C', 'c', 'C', 'c', 'C', 'c', 'C', 'c', 'D', 'd', 'D', 'd', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'G', 'g', 'G', 'g', 'G', 'g', 'G', 'g', 'H', 'h', 'H', 'h', 'I', 'i', 'I', 'i', 'I', 'i', 'I', 'i', 'I', 'i', 'IJ', 'ij', 'J', 'j', 'K', 'k', 'L', 'l', 'L', 'l', 'L', 'l', 'L', 'l', 'l', 'l', 'N', 'n', 'N', 'n', 'N', 'n', 'n', 'O', 'o', 'O', 'o', 'O', 'o', 'OE', 'oe', 'R', 'r', 'R', 'r', 'R', 'r', 'S', 's', 'S', 's', 'S', 's', 'S', 's', 'T', 't', 'T', 't', 'T', 't', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'W', 'w', 'Y', 'y', 'Y', 'Z', 'z', 'Z', 'z', 'Z', 'z', 's', 'f', 'O', 'o', 'U', 'u', 'A', 'a', 'I', 'i', 'O', 'o', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'A', 'a', 'AE', 'ae', 'O', 'o', 'Α', 'α', 'Ε', 'ε', 'Ο', 'ο', 'Ω', 'ω', 'Ι', 'ι', 'ι', 'ι', 'Υ', 'υ', 'υ', 'υ', 'Η', 'η']
-		];
+		$arr = array(
+			'before' => array('À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É', 'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô', 'Õ', 'Ö', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ', 'ç', 'è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ñ', 'ò', 'ó', 'ô', 'õ', 'ö', 'ø', 'ù', 'ú', 'û', 'ü', 'ý', 'ÿ', 'Ā', 'ā', 'Ă', 'ă', 'Ą', 'ą', 'Ć', 'ć', 'Ĉ', 'ĉ', 'Ċ', 'ċ', 'Č', 'č', 'Ď', 'ď', 'Đ', 'đ', 'Ē', 'ē', 'Ĕ', 'ĕ', 'Ė', 'ė', 'Ę', 'ę', 'Ě', 'ě', 'Ĝ', 'ĝ', 'Ğ', 'ğ', 'Ġ', 'ġ', 'Ģ', 'ģ', 'Ĥ', 'ĥ', 'Ħ', 'ħ', 'Ĩ', 'ĩ', 'Ī', 'ī', 'Ĭ', 'ĭ', 'Į', 'į', 'İ', 'ı', 'Ĳ', 'ĳ', 'Ĵ', 'ĵ', 'Ķ', 'ķ', 'Ĺ', 'ĺ', 'Ļ', 'ļ', 'Ľ', 'ľ', 'Ŀ', 'ŀ', 'Ł', 'ł', 'Ń', 'ń', 'Ņ', 'ņ', 'Ň', 'ň', 'ŉ', 'Ō', 'ō', 'Ŏ', 'ŏ', 'Ő', 'ő', 'Œ', 'œ', 'Ŕ', 'ŕ', 'Ŗ', 'ŗ', 'Ř', 'ř', 'Ś', 'ś', 'Ŝ', 'ŝ', 'Ş', 'ş', 'Š', 'š', 'Ţ', 'ţ', 'Ť', 'ť', 'Ŧ', 'ŧ', 'Ũ', 'ũ', 'Ū', 'ū', 'Ŭ', 'ŭ', 'Ů', 'ů', 'Ű', 'ű', 'Ų', 'ų', 'Ŵ', 'ŵ', 'Ŷ', 'ŷ', 'Ÿ', 'Ź', 'ź', 'Ż', 'ż', 'Ž', 'ž', 'ſ', 'ƒ', 'Ơ', 'ơ', 'Ư', 'ư', 'Ǎ', 'ǎ', 'Ǐ', 'ǐ', 'Ǒ', 'ǒ', 'Ǔ', 'ǔ', 'Ǖ', 'ǖ', 'Ǘ', 'ǘ', 'Ǚ', 'ǚ', 'Ǜ', 'ǜ', 'Ǻ', 'ǻ', 'Ǽ', 'ǽ', 'Ǿ', 'ǿ', 'Ά', 'ά', 'Έ', 'έ', 'Ό', 'ό', 'Ώ', 'ώ', 'Ί', 'ί', 'ϊ', 'ΐ', 'Ύ', 'ύ', 'ϋ', 'ΰ', 'Ή', 'ή'),
+			'after' => array('A', 'A', 'A', 'A', 'A', 'A', 'AE', 'C', 'E', 'E', 'E', 'E', 'I', 'I', 'I', 'I', 'D', 'N', 'O', 'O', 'O', 'O', 'O', 'O', 'U', 'U', 'U', 'U', 'Y', 's', 'a', 'a', 'a', 'a', 'a', 'a', 'ae', 'c', 'e', 'e', 'e', 'e', 'i', 'i', 'i', 'i', 'n', 'o', 'o', 'o', 'o', 'o', 'o', 'u', 'u', 'u', 'u', 'y', 'y', 'A', 'a', 'A', 'a', 'A', 'a', 'C', 'c', 'C', 'c', 'C', 'c', 'C', 'c', 'D', 'd', 'D', 'd', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'G', 'g', 'G', 'g', 'G', 'g', 'G', 'g', 'H', 'h', 'H', 'h', 'I', 'i', 'I', 'i', 'I', 'i', 'I', 'i', 'I', 'i', 'IJ', 'ij', 'J', 'j', 'K', 'k', 'L', 'l', 'L', 'l', 'L', 'l', 'L', 'l', 'l', 'l', 'N', 'n', 'N', 'n', 'N', 'n', 'n', 'O', 'o', 'O', 'o', 'O', 'o', 'OE', 'oe', 'R', 'r', 'R', 'r', 'R', 'r', 'S', 's', 'S', 's', 'S', 's', 'S', 's', 'T', 't', 'T', 't', 'T', 't', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'W', 'w', 'Y', 'y', 'Y', 'Z', 'z', 'Z', 'z', 'Z', 'z', 's', 'f', 'O', 'o', 'U', 'u', 'A', 'a', 'I', 'i', 'O', 'o', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'A', 'a', 'AE', 'ae', 'O', 'o', 'Α', 'α', 'Ε', 'ε', 'Ο', 'ο', 'Ω', 'ω', 'Ι', 'ι', 'ι', 'ι', 'Υ', 'υ', 'υ', 'υ', 'Η', 'η')
+		);
 
 		return str_replace($arr['before'], $arr['after'], $string);
 	}
@@ -992,7 +992,7 @@ class Image
 	 * @param array $config
 	 * @return bool
 	 */
-	public function setWatermark($path, $config = [])
+	public function setWatermark($path, $config = array())
 	{
 		// already loaded
 		if (self::$watermark !== null) {
@@ -1005,16 +1005,16 @@ class Image
 		}
 
 		// load
-		$cfg = is_array($config) ? $config : [];
+		$cfg = is_array($config) ? $config : array();
 
-		self::$watermark = [
+		self::$watermark = array(
 			'width' => 0,
 			'height' => 0,
 			'position' => (!empty($cfg['position']) ? $cfg['position'] : 'middle-bottom'),
 			'offsetX' => (!empty($cfg['offsetX']) ? $cfg['offsetX'] : 0),
 			'offsetY' => (!empty($cfg['offsetY']) ? $cfg['offsetY'] : -15),
 			'image' => null,
-		];
+		);
 
 		return $this->loadImageWatermark($path);
 	}
