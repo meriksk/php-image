@@ -566,13 +566,17 @@ class ImageGd extends BaseImage
 	 *
 	 * @return CImage
 	 */
-	public function overlay($overlay, $position = 'center', array $options = array())
+	public function overlay($overlay, $position = 'center', $options = array())
 	{
 		// Load overlay image
 		if (!($overlay instanceof CImage)) {
 			$overlay = CImage::load($overlay);
 		}
 
+		if (!is_array($options)) {
+			$options = array();
+		}
+		
 		// settings
 		$settings = array_merge(array(
 			'opacity' => 1,
@@ -678,12 +682,16 @@ class ImageGd extends BaseImage
 	 * @return CImage
 	 * @throws Exception
 	 */
-	public function text($text, $fontFile, $fontSize = 12, $color = true, $position = 'center', array $options = array())
+	public function text($text, $fontFile, $fontSize = 12, $color = true, $position = 'center', $options = array())
 	{
 
 		// check font
 		if ((substr($fontFile, '1')!=='/') && !file_exists($fontFile) || !is_readable($fontFile)) {
 			throw new Exception('Unable to load font: '.$fontFile);
+		}
+		
+		if (!is_array($options)) {
+			$options = array();
 		}
 
 		// additional options

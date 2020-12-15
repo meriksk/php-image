@@ -483,7 +483,7 @@ class Image
 	 * @param bool $allowEnlarge
 	 * @return static
 	 */
-	public function resize($width, $height, bool $allowEnlarge = true)
+	public function resize($width, $height, $allowEnlarge = true)
 	{
 		$this->driver->resize($width, $height, $allowEnlarge);
 		return $this;
@@ -495,7 +495,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToWidth($width, bool $allowEnlarge = true)
+    public function resizeToWidth($width, $allowEnlarge = true)
     {
 		$this->driver->resizeToWidth($width, $allowEnlarge);
         return $this;
@@ -507,7 +507,7 @@ class Image
      * @param bool $allowEnlarge
      * @return static
      */
-    public function resizeToHeight($height, bool $allowEnlarge = true)
+    public function resizeToHeight($height, $allowEnlarge = true)
     {
 		$this->driver->resizeToHeight($height, $allowEnlarge);
         return $this;
