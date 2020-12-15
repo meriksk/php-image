@@ -10,6 +10,27 @@ use Exception;
 use	meriksk\PhpImage\Image;
 use meriksk\PhpImage\BaseImage;
 
+if (!function_exists('imagepalettetotruecolor')) {
+    function imagepalettetotruecolor(&$src) {
+        if (imageistruecolor($src)) {
+            return true;
+        }
+
+        $dst = imagecreatetruecolor(imagesx($src), imagesy($src));
+    
+        imagealphablending($dst, false);//prevent blending with default black
+        $transparent = imagecolorallocatealpha($dst, 255, 255, 255, 127);//change the RGB values if you need, but leave alpha at 127
+        imagefilledrectangle($dst, 0, 0, imagesx($src), imagesy($src), $transparent);//simpler than flood fill
+        imagealphablending($dst, true);//restore default blending
+
+        imagecopy($dst, $src, 0, 0, 0, 0, imagesx($src), imagesy($src));
+        imagedestroy($src);
+
+        $src = $dst;
+        return true;
+    }
+}
+
 /**
  * ImageGd class file
  */
