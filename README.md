@@ -8,7 +8,7 @@ PHP-Image Library
 
 ## Requirements
 
-- PHP >=7.0
+- PHP >=5.6
 
 ## Supported Image Libraries
 
@@ -40,6 +40,7 @@ to your composer.json and run composer update
 
 * [Open image](#open-image)
 * [Resize image](#resize-image)
+* [Crop image](#crop-image)
 
 Open image
 ----------
@@ -47,13 +48,13 @@ Open image
 Because this class uses namespacing, when instantiating the object, you need to either use the fully qualified namespace:
 
 ```php
-$image = new \meriksk\Image\Image($filename);
+$image = new \meriksk\PhpImage\Image($filename);
 ```
 
 or alias it:
 
 ```php 
-use \meriksk\Image\Image;
+use \meriksk\PhpImage\Image;
 
 $image = new Image($filename);
 ```
@@ -62,7 +63,7 @@ This class can use Imagick or GD extension - whichever is available.
 Imagick extension is preferred if is available. You can force the extension for manipulating images as follows:
 
 ```php
-$image = new Image($filename, Image::DRIVER_GD);
+$image = new Image($filename, Image::DRIVER_IMAGICK);
 ```
 
 Save image
@@ -86,7 +87,7 @@ Output image
 To render the image directly into the browser, you can call:
 
 ```php
-$image->output(60, 'png');
+$image->toScreen(60, 'png');
 ```
 
 Resize
@@ -119,28 +120,36 @@ $image = $image->resizeToBestFit($max_width, $max_height, $allow_enlarge);
 **resize to long side**
 
 ```php
-$image = $image->resizeToLongSide($max_width, $max_height, $allow_enlarge);
+$image = $image->resizeToLongSide($max, $allow_enlarge);
 ```
 
 **resize to short side**
 
 ```php
-$image = $image->resizeToShortSide($max_width, $max_height, $allow_enlarge);
+$image = $image->resizeToShortSide($max, $allow_enlarge);
 ```
 
 
 Crop
 ----------
 
+** manual crop **
+
 ```php
-$image->crop($width, $height, $width, Image::::CROP_CENTER, $allow_enlarge);
+$image->crop($x, $y, $width, $height, $allow_enlarge);
+```
+
+** automatic crop **
+
+```php
+$image->autoCrop($width, $height, $position);
 ```
 
 Thumbnail
 ----------
 
 ```php
-$image->thumbnail($width, $height, $width, $allow_enlarge);
+$image->thumbnail($width, $height, $fill, $allow_enlarge);
 ```
 
 Rotate image

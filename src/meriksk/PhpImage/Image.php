@@ -761,7 +761,7 @@ class Image
 	 * @param float $percentage value (00-FF)
 	 * @return float
 	 */
-	public function percentage2hex($percentage)
+	public static function percentage2hex($percentage)
 	{
 		if (is_numeric($percentage)) {
 			if ($percentage > 1) { 
@@ -781,7 +781,7 @@ class Image
 	 * Where red, green, blue - ints 0-255, alpha - int 0-255
 	 * @return array|bool
 	 */
-	public function hex2rgba($color)
+	public static function hex2rgba($color)
 	{
 		// default color (transparent)
 		$r = 255; $g = 255; $b = 255; $a = 1.0;

@@ -7,7 +7,5 @@ use tests\unit\ImageTest;
 
 class GdTest extends ImageTest
 {
-
 	protected static $lib = Image::DRIVER_GD;
-
 }

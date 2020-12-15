@@ -398,7 +398,7 @@ abstract class BaseImage
 			case IMAGETYPE_JPEG:
 				return 'image/jpeg';
 			default:
-				throw new Exception('Unsupported format');
+				throw new Exception('Unsupported image type.');
 		}
 	}
 
