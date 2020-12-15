@@ -235,7 +235,7 @@ abstract class BaseImage
 	 * @param resource $resource
 	 * @return bool
 	 */
-	protected function isResource($resource = NULL): bool
+	protected function isResource($resource = NULL)
 	{
 		if ($resource === NULL) {
 			$resource = $this->resource;

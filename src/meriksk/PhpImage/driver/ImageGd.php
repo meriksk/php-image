@@ -224,7 +224,7 @@ class ImageGd extends BaseImage
 	 * @param int $height
 	 * @return void
 	 */
-	protected function _crop($x, $y, $width, $height): void
+	protected function _crop($x, $y, $width, $height)
 	{
 		// new image
 		$new = imagecreatetruecolor($width, $height);
@@ -334,7 +334,7 @@ class ImageGd extends BaseImage
 	 * @param int $mode
 	 * @return void
 	 */
-	protected function _flip($mode): void
+	protected function _flip($mode)
 	{
 		$flipMode = null;
 
