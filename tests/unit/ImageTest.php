@@ -140,9 +140,9 @@ class ImageTest extends ImageTestCase
 		$info = $image->ping();
 
 		$this->assertEquals(self::$imageRemoteExif, $info['path']);
-		$this->assertEquals(533, $info['width']);
-		$this->assertEquals(800, $info['height']);
-		$this->assertEquals('portrait', $info['orientation']);
+		$this->assertEquals(640, $info['width']);
+		$this->assertEquals(480, $info['height']);
+		$this->assertEquals('landscape', $info['orientation']);
 		$this->assertEquals('jpg', $info['extension']);
 		$this->assertEquals('image/jpeg', $info['mime_type']);
 	}
