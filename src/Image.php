@@ -208,9 +208,9 @@ class Image
 	 * @return array
 	 * @throws Exception
 	 */
-	public function ping()
+	public function ping($filename = null)
 	{
-		return $this->driver->ping();
+		return $this->driver->ping($filename);
 	}
 	
 	/**
@@ -328,12 +328,12 @@ class Image
 
 	/**
 	 * Returns image extension
-	 * @param bool $withDot
+	 * @param bool $dot
 	 * @return string
 	 */
-	public function getExtension($withDot = false)
+	public function getExtension($dot = false)
 	{
-		return $this->driver->extension ? ($withDot===true ? '.' : '') . $this->driver->extension : null;
+		return $this->driver->extension ? ($dot===true ? '.' : '') . $this->driver->extension : null;
 	}
 	
 	/**
@@ -557,11 +557,12 @@ class Image
 	 * @param int $width
 	 * @param int $height
 	 * @param bool $allowEnlarge
+	 * @param string|array $bgImage
 	 * @return static
 	 */
-	public function crop($x, $y, $width, $height, $allowEnlarge = false)
+	public function crop($x, $y, $width, $height, $allowEnlarge = false, $bgImage = null)
 	{
-		$this->driver->crop($x, $y, $width, $height, $allowEnlarge);
+		$this->driver->crop($x, $y, $width, $height, $allowEnlarge, $bgImage);
 		return $this;
 	}
 
@@ -584,11 +585,12 @@ class Image
 	 * @param int $width
 	 * @param int $height
 	 * @param bool $fill
-	 * @param bool $allowEnlarge
+	 * @param bool $enlarge
+	 * @param bool $bgColor
 	 * @return static
 	 * @throws Exception
 	 */
-	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false)
+	public function thumbnail($width, $height, $fill = false, $enlarge = true, $bgColor = null)
 	{
 		// check desired dimensions
 		if (!is_numeric($width) || $width < 0) {
@@ -598,7 +600,7 @@ class Image
 			throw new InvalidArgumentException("Height must be a valid int.");
 		}
 
-		$this->driver->thumbnail($width, $height, $fill, $allowEnlarge);
+		$this->driver->thumbnail($width, $height, $fill, $enlarge, $bgColor);
 		return $this;
 	}
 	
@@ -621,11 +623,11 @@ class Image
 	/**
 	 * Rotates an image.
 	 * @param int $angle Rotation angle in degrees. Supports negative values.
-	 * @param mixed $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
+	 * @param string|array $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
 	 * Transparent by default.
 	 * @return static
 	 */
-	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT)
+	public function rotate($angle, $bgColor = null)
 	{
 		if (!is_numeric($angle) || $angle<-360 || $angle>360) {
 			throw new InvalidArgumentException('Width must be a valid int.');
@@ -702,16 +704,28 @@ class Image
 	/**
 	 * Normalize color
 	 * @param string|array $color
+	 * @param string|array $defaultColor
 	 * @return array RGBa value
 	 */
-	public static function normalizeColor($color)
-	{
-		if (is_array($color)) {
-			$hex = self::rgba2hex($color);
-			return self::hex2rgba($hex);
-		} else {
-			return self::hex2rgba((string)$color);
+	public static function normalizeColor($color, $defaultColor = null)
+	{	
+		$c = array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0.0);
+		$color = $color ? $color : ($defaultColor ? $defaultColor : '#ffffff');
+		if ($color===null || $color === self::COLOR_TRANSPARENT) {
+			return $c;
 		}
+		
+		if ($color) {
+			if (is_array($color)) {
+				$hex = self::rgba2hex($color);
+				return self::hex2rgba($hex);
+			} else {
+				return self::hex2rgba((string)$color);
+			}
+		}
+		
+		// default
+		return $c;
 	}
 	
 	/**
@@ -744,13 +758,14 @@ class Image
 	/**
 	 * Convert HEX value to it's color percentage representation (00 => 0%, 7F => 50%, FF => 100%)
 	 * @param string $hex value (00-FF)
+	 * @param bool $floating
 	 * @return float
 	 */
-	public function hex2percentage($hex)
+	public static function hex2percentage($hex, $floating = false)
 	{
 		if (is_string($hex) && strlen($hex)===2) {
-			$val = hexdec($hex);
-			return round($val/255, 1);
+			$val = hexdec($hex)/255;
+			return $floating===true ? round($val, 2) : round($val*100);
 		}
 		
 		return 100;
@@ -758,17 +773,17 @@ class Image
 	
 	/**
 	 * Convert percentage value to it's HEX color representation (0% => 00, 50% => 7F, 100% => FF)
-	 * @param float $percentage value (00-FF)
+	 * @param int $percentage value (0 - 100 or 0.0 - 1.0)
 	 * @return float
 	 */
 	public static function percentage2hex($percentage)
-	{
+	{	
 		if (is_numeric($percentage)) {
-			if ($percentage > 1) { 
+			if ($percentage > 1) {
 				$percentage = $percentage / 100; 
 			}
-			
-			$val = $percentage * 255;
+
+			$val = ceil($percentage * 255);
 			return str_pad(dechex($val), 2, 0, STR_PAD_LEFT);
 		}
 		
@@ -822,13 +837,13 @@ class Image
 				default:
 					// 8-digit hexadecimal notation (with alpha)
 					if (strlen($color) === 8) {
-						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]), self::hex2percentage($color[6].$color[7]));
+						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]), self::hex2percentage($color[6].$color[7], true));
 					// 6-digit hexadecimal notation (no alpha)
 					} elseif (strlen($color) === 6) {
 						list ($r, $g, $b) = array(hexdec($color[0].$color[1]), hexdec($color[2].$color[3]), hexdec($color[4].$color[5]));
 					// 4-digit hexadecimal notation
 					} elseif (strlen($color) === 4) {
-						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]), self::hex2percentage($color[3].$color[3]));
+						list ($r, $g, $b, $a) = array(hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]), self::hex2percentage($color[3].$color[3], true));
 					// 3-digit hexadecimal notation (no alpha).
 					} elseif (strlen($color) === 3) {
 						list ($r, $g, $b) = array(hexdec($color[0].$color[0]), hexdec($color[1].$color[1]), hexdec($color[2].$color[2]));

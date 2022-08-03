@@ -11,13 +11,13 @@
 	stopOnFailure="true">
     <testsuites>
         <testsuite name="All">
-            <directory suffix="Test.php">./tests</directory>
+            <directory suffix="Test.php">./tests/image</directory>
         </testsuite>
         <testsuite name="Gd">
-            <file>./tests/GdTest.php</file>
+            <file>./tests/image/GdTest.php</file>
         </testsuite>
         <testsuite name="Imagick">
-            <file>./tests/ImagickTest.php</file>
+            <file>./tests/image/ImagickTest.php</file>
         </testsuite>
-    </testsuites>
+    </testsuites>	
 </phpunit>

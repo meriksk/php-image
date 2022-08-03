@@ -1,13 +1,11 @@
 <?php
 
-namespace tests\unit;
+namespace meriksk\PhpImage\Tests\Image;
 
-use tests\ImageTestCase;
-use meriksk\PhpImage\DriverFactory;
 use meriksk\PhpImage\Image;
+use meriksk\PhpImage\Tests\BaseTestCase;
 
-
-class BaseImageCest extends ImageTestCase
+class BaseImageTest extends BaseTestCase
 {
 	
 	public function testCheckMimeType()

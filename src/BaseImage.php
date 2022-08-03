@@ -1,8 +1,10 @@
 <?php
 
 namespace meriksk\PhpImage;
+
 use Exception;
 use InvalidArgumentException;
+
 
 abstract class BaseImage
 {
@@ -25,15 +27,17 @@ abstract class BaseImage
 
 	protected static $driver = IMAGE::DRIVER_GD;
 
+	// loaders
 	abstract protected function _loadFromFile($file);
 
+	// helpers
 	abstract protected function _ping($filename);
 	abstract protected function _destroy($resource);
 	abstract protected function _save($filename, $quality, $mimeType);
 	abstract protected function _output($quality, $mimeType);
 	abstract protected function _resize($width, $height);
-	abstract protected function _crop($x, $y, $width, $height);
-	abstract protected function _thumbnail($width, $height, $fill, $allowEnlarge);
+	abstract protected function _crop($x, $y, $width, $height, $bgColor);
+	abstract protected function _thumbnail($width, $height, $fill, $allowEnlarge, $bgColor);
 	abstract protected function _flip($mode);
 	abstract protected function _rotate($angle, $bgColor);
 	abstract protected function _setBackgroundColor($color);
@@ -43,6 +47,7 @@ abstract class BaseImage
 	// Loaders
 	////////////////////////////////////////////////////////////////////////////
 
+
 	/**
 	 * Loads an image from a file.
 	 * @param string $filename
@@ -51,31 +56,34 @@ abstract class BaseImage
 	 */
 	public function loadFromFile($filename)
 	{
-		$this->debug("loadFromFile()");
-		$this->destroy();
+		$this->debug("");
+		$this->debug("loadFromFile('{$filename}')");
 
-		if (empty($filename) || !is_string($filename)) {
+		// check image
+		$base64Image = $filename && substr($filename, 0, 5)==='data:';
+		if (empty($filename) || (!$base64Image && !is_file($filename) && stripos($filename, 'http')!==0)) {
 			throw new InvalidArgumentException('Invalid file data.');
 		}
 
-		$handle = @fopen($filename, 'r');
-		if (!$handle) {
-			throw new Exception('File not found. ('. $filename . ')');
-		} fclose($handle);
+		$this->destroy();
 
 		// store info
-		if (stripos($filename, 'http')===false) {
-			$this->path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, trim($filename));
-		} else {
+		if (stripos($filename, 'http')===0 || $base64Image) {
 			$this->path = trim($filename);
+		} else {
+			$this->path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, trim($filename));
 		}
+
+		$handle = @fopen($this->path, 'r');
+		if (!$handle) {
+			throw new Exception('File not found. ('. $this->path . ')');
+		} fclose($handle);
 
 		// ping image
 		$this->_ping($this->path);
 
 		// load image resource
-		$this->debug("loadImage()");
-		$this->_loadFromFile($filename);
+		$this->_loadFromFile($this->path);
 
 		// check image
 		if (!$this->resource || !$this->mime_type) {
@@ -84,7 +92,7 @@ abstract class BaseImage
 
 		return $this;
 	}
-	
+
 	/**
 	 * Creates a new image from a string.
 	 * @param string $string The raw image data as a string.
@@ -94,12 +102,20 @@ abstract class BaseImage
 	 */
 	public function loadFromString($data, $encode = true)
 	{
-		$this->debug("loadFromString()");
+		$this->debug("");
+		$this->debug("loadFromString('{$data}')");
+
+		// check for data info
+		$addDataInfo = true;
+		if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+			return $this->_loadFromFile($data);
+		}
+
 		$this->destroy();
 
 		// convert to base64
 		if ($encode === true) {
-			$data = base64_encode((string)$data);
+			$data = base64_encode((string)trim($data));
 		} else {
 			$data = (string)$data;
 		}
@@ -111,7 +127,6 @@ abstract class BaseImage
 		$this->_ping($data);
 
 		// load image resource
-		$this->debug("_loadFromString()");
 		$this->_loadFromFile($data);
 
 		// check image
@@ -129,8 +144,26 @@ abstract class BaseImage
 	 */
 	public function loadFromBase64String($data)
 	{
-		$this->debug("loadFromBase64String()");
+		$this->debug("");
+		$this->debug("loadFromBase64String('{$data}')");
 		return $this->loadFromString($data, false);
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////
+	// Methods
+	////////////////////////////////////////////////////////////////////////////
+
+
+	/**
+	 * Round value
+	 * @param int|float $value
+	 * @return float
+	 */
+	protected function round($value)
+	{
+		if (!is_numeric($value)) return $value;
+		return round($value);
 	}
 
 	/**
@@ -178,12 +211,12 @@ abstract class BaseImage
 				'extension' => $this->extension,
 				'orientation' => $this->orientation,
 			);
-			
+
 			if ($extendedInfo === true) {
 				$info['exif'] = $this->readExifData($this->path);
 			}
 		}
-		
+
 		return $info;
 	}
 
@@ -198,6 +231,7 @@ abstract class BaseImage
 
 		$this->w = null;
 		$this->h = null;
+		$this->path = null;
 		$this->type = null;
 		$this->mime_type = null;
 		$this->extension = null;
@@ -208,7 +242,6 @@ abstract class BaseImage
 		//$this->dateCreated = NULL;
 
 		// working image resource
-		$this->debug("destroyResource()");
 		$this->_destroy($this->resource);
 
 		$this->resource = null;
@@ -226,6 +259,7 @@ abstract class BaseImage
 	protected function debug($msg, $newLine = TRUE, $inline = false)
 	{
 		if (Image::$debug === true && php_sapi_name() === 'cli') {
+			if (strlen($msg) > 70) { $msg = substr($msg, 0, 70) . '...'; }
 			echo ($inline ? '' : "--->\t") . $msg . ($newLine ? "\n\r" : '');
 		}
 	}
@@ -241,18 +275,19 @@ abstract class BaseImage
 			$resource = $this->resource;
 		}
 
-		if (
-			$resource
-			&&
-			(
-				(is_resource($resource) && 'gd'===get_resource_type($resource))
-				||
-				is_object($resource) && 'Imagick'===get_class($resource)
-			)
-		) {
-			return true;
+		if ($resource) {
+			if (self::$driver === Image::DRIVER_IMAGICK) {
+				return is_object($resource) && 'Imagick'===get_class($resource);
+			} else {
+				if (\PHP_VERSION_ID >= 80000) {
+					return $resource instanceof \GdImage;
+				} else {
+					return is_resource($resource) && 'gd'===get_resource_type($resource);
+				}
+			}
 		}
 
+		// default
 		return false;
 	}
 
@@ -302,11 +337,11 @@ abstract class BaseImage
 	 */
 	public function revert()
 	{
-		$this->destroy();
+		$this->debug("revert()");
 		$this->loadFromFile($this->path);
 		return $this;
 	}
-	
+
 	/**
 	 * Outputs image without saving
 	 * @param int $quality Output image quality in percents 0-100
@@ -448,11 +483,10 @@ abstract class BaseImage
 	 */
 	public function resize($width, $height, $allowEnlarge = true)
 	{
-		
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
-		
+
 		// enlarge disabled
         if ($allowEnlarge===false && ($width > $this->w || $height > $this->h)) {
             return $this;
@@ -462,7 +496,6 @@ abstract class BaseImage
 		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge);
 
 		$this->debug("resize($width, $height, ". ($allowEnlarge===true ? "true":"false") .")");
-		$this->debug("_resize($w, $h)");
 		$this->_resize($w, $h);
 		$this->_ping();
 
@@ -482,7 +515,7 @@ abstract class BaseImage
 		}
 
         $ratio  = $width / $this->w;
-        $height = (int)round($this->h * $ratio);
+        $height = (int)$this->round($this->h * $ratio);
 
 		// enlarge disabled
         if ($allowEnlarge===false && ($width > $this->w || $height > $this->h)) {
@@ -507,7 +540,7 @@ abstract class BaseImage
 		}
 
         $ratio  = $height / $this->h;
-        $width = (int)round($this->w * $ratio);
+        $width = (int)$this->round($this->w * $ratio);
 
 		// enlarge disabled
         if ($allowEnlarge===false && ($width > $this->w || $height > $this->h)) {
@@ -527,18 +560,19 @@ abstract class BaseImage
      */
     public function resizeToShortSide($maxShort, $allowEnlarge = true)
     {
-		
 		if (!is_numeric($maxShort) || $maxShort <= 0) {
 			throw InvalidArgumentException('Size must an integer and must be non negative.');
 		}
 
+		$this->debug("resizeToShortSide($maxShort, ". ($allowEnlarge===true ? "true":"false") .")");
+
         if ($this->h < $this->w) {
             $ratio = $maxShort / $this->h;
-            $long = $this->w * $ratio;
+            $long = $this->round($this->w * $ratio);
             $this->resize($long, $maxShort, $allowEnlarge);
         } else {
             $ratio = $maxShort / $this->w;
-            $long = $this->h * $ratio;
+            $long = $this->round($this->h * $ratio);
             $this->resize($maxShort, $long, $allowEnlarge);
         }
     }
@@ -551,18 +585,19 @@ abstract class BaseImage
      */
     public function resizeToLongSide($maxLong, $allowEnlarge = true)
     {
-
 		if (!is_numeric($maxLong) || $maxLong <= 0) {
 			throw InvalidArgumentException('Size must an integer and must be non negative.');
 		}
 
+		$this->debug("resizeToLongSide($maxLong, ". ($allowEnlarge===true ? "true":"false") .")");
+
         if ($this->h > $this->w) {
             $ratio = $maxLong / $this->h;
-            $short = $this->w * $ratio;
+            $short = $this->round($this->w * $ratio);
             $this->resize($short, $maxLong, $allowEnlarge);
         } else {
             $ratio = $maxLong / $this->w;
-            $short = $this->h * $ratio;
+            $short = $this->round($this->h * $ratio);
             $this->resize($maxLong, $short, $allowEnlarge);
         }
     }
@@ -576,7 +611,7 @@ abstract class BaseImage
      */
     public function resizeToBestFit($width, $height, $allowEnlarge = true)
     {
-		
+
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
@@ -609,29 +644,33 @@ abstract class BaseImage
 	 * @param int $width
 	 * @param int $height
 	 * @param bool $allowEnlarge
+	 * @param string|array $bgColor
 	 * @return BaseImage
 	 */
-	public function crop($x, $y, $width, $height, $allowEnlarge = false)
+	public function crop($x, $y, $width, $height, $allowEnlarge = false, $bgColor = null)
 	{
 
 		if (!is_numeric($x) || !is_numeric($y) || $x < 0 || $y < 0) {
 			throw new InvalidArgumentException('X and Y coordinate must be an integer and must be non negative.');
 		}
-		
+
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw new InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
-		
-		$w = (int)round($width);
-		$h = (int)round($height);
-		
+
+		$w = (int)$this->round($width);
+		$h = (int)$this->round($height);
+
 		// enlarge disabled
         if ($allowEnlarge===false) {
 			if ($x + $w > $this->w) { $w = $this->w - $x; }
-			if ($y + $h > $this->h) { $h = $this->h - $y; }	
+			if ($y + $h > $this->h) { $h = $this->h - $y; }
         }
 
-		$this->_crop($x, $y, $w, $h);
+		$bgColor = $bgColor ? $bgColor : $this->bg_color;
+		$bgColor = Image::normalizeColor($bgColor);
+		
+		$this->_crop($x, $y, $w, $h, $bgColor);
 		$this->_ping();
 
 		return $this;
@@ -646,11 +685,12 @@ abstract class BaseImage
 	 */
 	public function cropAuto($width, $height, $position = self::CROP_CENTER)
 	{
+		$this->debug("cropAuto({$width}, {$height}, {$position})");
 
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw new InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
-		
+
 		$w = $width>0 && $width<=$this->w ? $width : $this->w;
 		$h = $height>0 && $height<=$this->h ? $height : $this->h;
 
@@ -718,8 +758,8 @@ abstract class BaseImage
 					break;
 			}
 
-			$x = $x>=0 ? $x : 0;
-			$y = $y>=0 ? $y : 0;
+			$x = $x>=0 ? (int)$this->round($x) : 0;
+			$y = $y>=0 ? (int)$this->round($y) : 0;
 		}
 
         return array($x, $y);
@@ -729,20 +769,24 @@ abstract class BaseImage
 	 * Thumbnail an image
 	 * @param int $width
 	 * @param int $height
-	 * @param bool $allowEnlarge
 	 * @param bool $fill
+	 * @param bool $allowEnlarge
+	 * @param string|array $bgColor
 	 * @return BaseImage
 	 */
-	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false)
+	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
 	{
-		$this->debug("thumbnail($width, $height, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .")");
-		$this->debug("_thumbnail($width, $height, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .")");
-		$this->_thumbnail($width, $height, $fill, $allowEnlarge);
+		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");		
+
+		$bgColor = $bgColor ? $bgColor : $this->bg_color;
+		$bgColor = Image::normalizeColor($bgColor);
+
+		$this->_thumbnail($width, $height, $fill, $allowEnlarge, $bgColor);
 		$this->_ping();
 
 		return $this;
 	}
-	
+
 	/**
 	 * Flips an image using a given mode
 	 * @param int|string $mode
@@ -750,31 +794,34 @@ abstract class BaseImage
 	 */
 	public function flip($mode = Image::FLIP_VERTICAL)
 	{
-		$this->debug("flip($mode)");		
+		$this->debug("flip($mode)");
 		$this->debug("_flip($mode)");
 		$this->_flip($mode);
-		$this->_ping();		
+		$this->_ping();
 
 		return $this;
 	}
 
 	/**
 	 * Rotate an image with a given angle and background color
-	 * @param float $angle <p>Rotation angle, in degrees. The rotation angle is 
+	 * @param float $angle <p>Rotation angle, in degrees. The rotation angle is
 	 * interpreted as the number of degrees to rotate the image anticlockwise.</p>
-	 * @param string|array $bgd_color <p>Specifies the color of the uncovered 
+	 * @param string|array $bgd_color <p>Specifies the color of the uncovered
 	 * zone after the rotation</p> Transparent by default.
 	 * @return void
 	 */
-	public function rotate($angle, $bgColor = self::COLOR_TRANSPARENT)
+	public function rotate($angle, $bgColor = null)
 	{
 		$angle = (int)$angle;
 		if (!is_numeric($angle) || $angle===0 || $angle<-359 || $angle > 359) {
 			return $this;
 		}
 
-		$this->debug("rotate($angle)");
-		$this->debug("rotateImage($angle)");
+		$this->debug("rotate({$angle}, ". json_encode($bgColor) .")");
+
+		$bgColor = $bgColor ? $bgColor : $this->bg_color;
+		$bgColor = Image::normalizeColor($bgColor);
+		
 		$this->_rotate($angle, $bgColor);
 		$this->_ping();
 
@@ -842,26 +889,24 @@ abstract class BaseImage
 	public function setBackgroundColor($color)
 	{
 		if (is_string($color) || is_array($color)) {
-			$rgba = Image::normalizeColor($color);
-			$this->bg_color = $rgba;
-
 			$this->debug("setBackgroundColor(". json_encode($color) .")");
-			$this->debug("setImageBackgroundColor(". json_encode($rgba) .")");
-			$this->_setBackgroundColor($rgba);
+			$this->bg_color = Image::normalizeColor($color);
+			//$this->_setBackgroundColor($this->bg_color);
 		}
+
 		return $this;
 	}
-	
+
 	/**
 	 * Reads the EXIF headers from an image file
-	 * @param string $file The location of the image file. This can either be 
-	 * a path to the file (stream wrappers are also supported as usual) 
+	 * @param string $file The location of the image file. This can either be
+	 * a path to the file (stream wrappers are also supported as usual)
 	 * or a stream resource.
 	 * @param string $requiredSections
-	 * @param bool $thumbnail bool $thumbnail <p>When set to <b><code>TRUE</code></b> 
+	 * @param bool $thumbnail bool $thumbnail <p>When set to <b><code>TRUE</code></b>
 	 * the thumbnail itself is read. Otherwise, only the tagged data is read.</p>
-	 * @return bool|array It returns an associative array where the array indexes 
-	 * are the header names and the array values are the values associated with 
+	 * @return bool|array It returns an associative array where the array indexes
+	 * are the header names and the array values are the values associated with
 	 * those headers. If no data can be returned, exif_read_data() will return false.
 	 */
 	public function readExifData($file = null, $requiredSections = null, $thumbnail = false)
@@ -878,15 +923,15 @@ abstract class BaseImage
 	 * @param string $property
 	 * @param mixed $default
 	 * @param Closure $callback
-	 * @return mixed It returns an exif property value. If no EXIF data can be returned, 
+	 * @return mixed It returns an exif property value. If no EXIF data can be returned,
 	 * function will return false.
 	 */
 	public function getExifData($property = null, $default = null, $callback = null)
 	{
-	
+
 		$d = !empty($property) ? (is_array($property) ? json_encode($property) : '"'. (string)$property .'"') : '';
 		$this->debug('getExifProperty('. $d .')');
-		
+
 		// exif data
 		if ($this->exif === null) {
 			$this->readExifData();
@@ -895,15 +940,15 @@ abstract class BaseImage
 		if ($this->exif === false) {
 			return false;
 		}
-		
+
 		// return all EXIF data
 		if ($property===null) {
 			return $this->exif;
 		}
 
 		$value = $default;
-		
-		// props 
+
+		// props
 		$props = array();
 		$allowCallback = true;
 
@@ -913,7 +958,7 @@ abstract class BaseImage
 		} elseif (is_string($property)) {
 			$props = array($property);
 		}
-		
+
 		// named properties
 		$namedProperties = array(
 			'model' => 'Model',
@@ -936,7 +981,7 @@ abstract class BaseImage
 			if (isset($namedProperties[$prop])) {
 				$prop = $namedProperties[$prop];
 			}
-			
+
 			$val = null;
 
 			// read data
@@ -952,13 +997,13 @@ abstract class BaseImage
 					$val = call_user_func_array($callback, array($val, $this->exif));
 				}
 			}
-			
+
 			$value[$prop] = $val;
 		}
 
 		return count($value)>1 ? $value : current($value);
 	}
-	
+
 	/**
 	 * Returns image date of creation
 	 * @param string $format
@@ -975,7 +1020,7 @@ abstract class BaseImage
 			}
 		});
 	}
-	
+
 	/**
 	 * Returns image date of creation
 	 * @param bool $dmsFormat
@@ -983,15 +1028,15 @@ abstract class BaseImage
 	 */
 	public function getGps($dmsFormat = null)
 	{
-		
+
 		// get lat and lng (format: [coord, hemisphere])
 		$lat = $this->getExifData(array('GPSLatitude', 'GPSLatitudeRef'));
 		$lng = $this->getExifData(array('GPSLongitude', 'GPSLongitudeRef'));
-		
+
 		if (empty($lat) || empty($lng)) {
 			return null;
 		}
-		
+
 		$gps = array();
 		foreach(array($lat, $lng) as $index => $coordinate) {
 			/* @var $coordinate array */
@@ -1002,14 +1047,14 @@ abstract class BaseImage
 
 			// reset keys [0: coord, 1: hemisphere]
 			$values = array_values($coordinate);
-			
+
 			if (!isset($values[0]) || !isset($values[1])) {
 				return null;
 			}
-			
+
 			$coord = isset($values[0]) ? $values[0] : null;
 			$hemisphere = isset($values[1]) ? $values[1] : null;
-			
+
 			if (is_string($coord)) {
 				$coord = array_map('trim', explode(',', $coord));
 			}
@@ -1021,7 +1066,7 @@ abstract class BaseImage
 
 			$sign = ($hemisphere === 'W' || $hemisphere === 'S') ? -1 : 1;
 			$key = $index===0 ? 'lat' : 'lng';
-			
+
 			if ($dmsFormat === true) {
 
 				//normalize
@@ -1041,19 +1086,19 @@ abstract class BaseImage
 					$degrees += floor($minutes/60.0);
 					$minutes -= 60*floor($minutes/60.0);
 				}
-				
+
 				$gps[$key] = array(
 					'degrees' => $degrees,
-					'minutes' => $minutes, 
+					'minutes' => $minutes,
 					'seconds' => $seconds
 				);
-				
+
 			} else {
-				
+
 				$gps[$key] = $sign * ($degrees + $minutes/60 + $seconds/3600);
 			}
 		}//foreach
-	
+
 		return !empty($gps) ? $gps : null;
 	}
 
@@ -1070,5 +1115,5 @@ abstract class BaseImage
 
 		return floatval($parts[0]) / floatval($parts[1]);
 	}
-	
+
 }

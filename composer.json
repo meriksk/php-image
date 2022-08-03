@@ -1,23 +1,24 @@
 {
     "name": "meriksk/php-image",
+	"type": "library",
     "description": "PHP class to re-size and scale images",
     "keywords": ["image", "gd", "imagick", "resize", "thumbnail", "scale"],
-	"type": "library",
+	"homepage": "https://github.com/meriksk",
     "license": "MIT",
     "authors": [
         {
             "name": "Marek Drugac",
-            "email": "drugacm@gmail.com",
+            "email": "marek@luceon.us",
             "role": "Creator"
         }
     ],
+	"prefer-stable": true,
+	"minimum-stability": "stable",
 	"require": {
 		"php": ">=5.6.0"
 	},
     "require-dev": {
-        "codeception/codeception": "^4.1",
-        "codeception/module-asserts": "^1.3",
-        "codeception/module-phpbrowser": "^1.0"
+        "phpunit/phpunit": "^9.5"
     },
 	"suggest": {
 		"ext-gd": "to use GD library based image processing.",
@@ -25,12 +26,15 @@
 	},
     "autoload": {
         "psr-4": {
-            "meriksk\\PhpImage\\": "src",
-			"tests\\": "tests"
+            "meriksk\\PhpImage\\": "src/"
+        }
+    },
+	"autoload-dev": {
+        "psr-4": {
+			"meriksk\\PhpImage\\Tests\\": "tests/"
         }
     },
     "scripts": {
-        "test": "php vendor/bin/codecept"
-    },
-    "minimum-stability": "stable"
+        "test": "vendor/bin/phpunit --colors=auto"
+    }
 }

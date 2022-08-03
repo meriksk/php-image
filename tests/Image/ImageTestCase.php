@@ -1,14 +1,12 @@
 <?php
 
-namespace tests\unit;
+namespace meriksk\PhpImage\Tests\Image;
 
-use tests\ImageTestCase;
-use meriksk\PhpImage\DriverFactory;
+use meriksk\PhpImage\Tests\BaseTestCase;
 use meriksk\PhpImage\Image;
 
 
-
-class ImageTest extends ImageTestCase
+class ImageTestCase extends BaseTestCase
 {
 
 	public function testConstruct()
@@ -18,18 +16,17 @@ class ImageTest extends ImageTestCase
 		$this->assertImage($image);
 
 		// data url
-		$image = new Image('data:image/gif;base64,R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw==');
+		$image = new Image('data:image/jpeg;base64,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');
 		$this->assertImage($image);
 
-		// string (invalid filename - must throw an exception)
-		$this->expectException(\Exception::class);
+		// string (invalid filename - exception expected)
+		$this->expectException(\InvalidArgumentException::class);
 		$image = new Image('R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw==');
 	}
 
 	public function testGetInstance()
     {
 		$image = Image::getInstance(static::$lib);
-
 		$this->assertImage($image);
 	}
 
@@ -109,7 +106,6 @@ class ImageTest extends ImageTestCase
 
 	public function testPing()
 	{
-		/*
 		// path
 		$image = new Image(self::$imageLandscape, static::$lib);
 		$info = $image->ping();
@@ -122,17 +118,6 @@ class ImageTest extends ImageTestCase
 		$this->assertEquals('landscape', $info['orientation']);
 		$this->assertEquals('jpg', $info['extension']);
 		$this->assertEquals('image/jpeg', $info['mime_type']);
-
-		// string
-		$image = Image::fromString(file_get_contents(self::$imageLandscape));
-		$info = $image->ping();
-		$image->destroy();
-
-		$this->assertIsArray($info);
-		$this->assertArrayHasKey('path', $info);
-		$this->assertEquals(800, $info['width']);
-		$this->assertEquals(533, $info['height']);
-		*/
 
 		// remote image
 		// exif
@@ -202,8 +187,11 @@ class ImageTest extends ImageTestCase
 		$this->assertEmpty($info);
 		$this->assertNull($image->getResource());
 		$this->assertNull($image->getPath());
+		$this->assertNull($image->getMimeType());
 		$this->assertNull($image->getWidth());
 		$this->assertNull($image->getHeight());
+		$this->assertNull($image->getExtension());
+		$this->assertNull($image->getOrientation());
 	}
 
 	public function testGetResource()
@@ -237,7 +225,7 @@ class ImageTest extends ImageTestCase
 		$dimensions = $image->getDimensions();
 
 		$this->assertIsArray($dimensions);
-		$this->assertEquals([500, 333], $dimensions);
+		$this->assertEquals([800, 533], $dimensions);
 
 		// invalid image
 		$this->expectException(\Exception::class);
@@ -254,7 +242,7 @@ class ImageTest extends ImageTestCase
 		$image = new Image(static::$imageLandscape, static::$lib);
 		$w = $image->getWidth();
 
-		$this->assertEquals(500, $w);
+		$this->assertEquals(800, $w);
 
 		// invalid image
 		$this->expectException(\Exception::class);
@@ -269,7 +257,7 @@ class ImageTest extends ImageTestCase
 		$image = new Image(static::$imageLandscape, static::$lib);
 		$h = $image->getHeight();
 
-		$this->assertEquals(333, $h);
+		$this->assertEquals(533, $h);
 	}
 
 	public function testGetMimeType()
@@ -340,7 +328,7 @@ class ImageTest extends ImageTestCase
 	{
 		// LOAD JPG -> ECHO PNG
 		$image = new Image(static::$imageLandscape, static::$lib);
-		$data = $image->toString(100, 'png');
+		$data = $image->toString(100, 'jpg');
 
 		$this->assertIsString($data);
 
@@ -349,7 +337,7 @@ class ImageTest extends ImageTestCase
 		$info = $image->getInfo();
 
 		$this->assertImage($image);
-		$this->assertEquals('image/png', $info['mime_type']);
+		$this->assertEquals('image/jpeg', $info['mime_type']);
 	}
 
 	public function testToBase64()
@@ -442,7 +430,7 @@ class ImageTest extends ImageTestCase
 		$image->save($path);
 		$info = $image->getInfo();
 
-		$this->assertEquals([500, 333], $image->getDimensions());
+		$this->assertEquals([800, 533], $image->getDimensions());
 	}
 
 	public function testResizeToHeight()
@@ -465,9 +453,9 @@ class ImageTest extends ImageTestCase
 		$image->save($path);
 		$info = $image->getInfo();
 
-		$this->assertEquals([500, 333], $image->getDimensions());
-		$this->assertEquals(500, $info['width']);
-		$this->assertEquals(333, $info['height']);
+		$this->assertEquals([800, 533], $image->getDimensions());
+		$this->assertEquals(800, $info['width']);
+		$this->assertEquals(533, $info['height']);
 	}
 
 	public function testResizeToShortSide()
@@ -479,8 +467,8 @@ class ImageTest extends ImageTestCase
 		$image->save($path);
 		$info = $image->getInfo();
 
-		$this->assertEquals([900, 600], $image->getDimensions());
-		$this->assertEquals(900, $info['width']);
+		$this->assertEquals([901, 600], $image->getDimensions());
+		$this->assertEquals(901, $info['width']);
 		$this->assertEquals(600, $info['height']);
 
 		// test 2: landscape (allowEnlarge: false)
@@ -490,13 +478,14 @@ class ImageTest extends ImageTestCase
 		$image->save($path);
 		$info = $image->getInfo();
 
-		$this->assertEquals([500, 333], $image->getDimensions());
-		$this->assertEquals(500, $info['width']);
-		$this->assertEquals(333, $info['height']);
+		$this->assertEquals([800, 533], $image->getDimensions());
+		$this->assertEquals(800, $info['width']);
+		$this->assertEquals(533, $info['height']);
 	}
 
 	public function testResizeToLongSide()
 	{
+
 		// test 1 (allowEnlarge: true)
 		$image = new Image(static::$imageLandscape, static::$lib);
 		$image->resizeToLongSide(600, true);
@@ -504,20 +493,20 @@ class ImageTest extends ImageTestCase
 		$image->save($path);
 		$info = $image->getInfo();
 
-		$this->assertEquals([600, 399], $image->getDimensions());
+		$this->assertEquals([600, 400], $image->getDimensions());
 		$this->assertEquals(600, $info['width']);
-		$this->assertEquals(399, $info['height']);
+		$this->assertEquals(400, $info['height']);
 
 		// test 2: landscape (allowEnlarge: false)
 		$image = new Image(static::$imageLandscape, static::$lib);
 		$image->resizeToLongSide(700, false);
 		$path = $this->getTmpPath('resizeToLongSide_700.jpg');
 		$image->save($path);
-		$info = Image::pingImage($path, static::$lib);
+		$info = $image->getInfo();
 
-		$this->assertEquals([500, 333], $image->getDimensions());
-		$this->assertEquals(500, $info['width']);
-		$this->assertEquals(333, $info['height']);
+		$this->assertEquals([700, 466], $image->getDimensions());
+		$this->assertEquals(700, $info['width']);
+		$this->assertEquals(466, $info['height']);
 	}
 
 	public function testResizeToBestFit()
@@ -719,7 +708,7 @@ class ImageTest extends ImageTestCase
 		$this->assertEquals([300, 150], $image->getDimensions());
 
 	}
-	
+
 	public function testFlip()
 	{
 		// working image (610x621)
@@ -742,7 +731,7 @@ class ImageTest extends ImageTestCase
 		$path = $this->getTmpPath('flip_both.png'); $image->save($path);
 		$this->assertEquals([610, 621], $image->getDimensions());
 	}
-	
+
 	public function testRotate()
 	{
 		// jpg
@@ -762,6 +751,8 @@ class ImageTest extends ImageTestCase
 		$png->rotate(45, '#ff0000');
 		$path = $this->getTmpPath('rotate_45.gif'); $png->save($path);
 		$png->destroy();
+		
+		$this->markTestSkipped();
 	}
 
 	public function testSetBackgroundColor()
@@ -785,6 +776,8 @@ class ImageTest extends ImageTestCase
 		$image->thumbnail(200, 100);
 		$path = $this->getTmpPath('setBackgroundColor_ff0000_transparent.gif'); $image->save($path, 100, 'gif');
 		$image->destroy();
+		
+		$this->markTestIncomplete();
 	}
 
 	public function testNormalizeColor()
@@ -816,16 +809,16 @@ class ImageTest extends ImageTestCase
 		$c = Image::hex2percentage('00');
 		$this->assertEquals(0, $c);
 
-		$c = Image::hex2percentage('19');
+		$c = Image::hex2percentage('1A');
 		$this->assertEquals(10, $c);
 
-		$c = Image::hex2percentage('72');
+		$c = Image::hex2percentage('73');
 		$this->assertEquals(45, $c);
 
-		$c = Image::hex2percentage('7F');
+		$c = Image::hex2percentage('80');
 		$this->assertEquals(50, $c);
 
-		$c = Image::hex2percentage('D8');
+		$c = Image::hex2percentage('D9');
 		$this->assertEquals(85, $c);
 
 		$c = Image::hex2percentage('FF');
@@ -834,17 +827,23 @@ class ImageTest extends ImageTestCase
 
 	public function testPercentage2hex()
 	{
-		$p = Image::percentage2hex(100);
-		$this->assertEquals('ff', $p);
-
-		$p = Image::percentage2hex(50);
-		$this->assertEquals('7f', $p);
-
-		$p = Image::percentage2hex(0.5);
-		$this->assertEquals('7f', $p);
-
 		$p = Image::percentage2hex(0);
 		$this->assertEquals('00', $p);
+
+		$p = Image::percentage2hex(10);
+		$this->assertEquals('1a', $p);
+
+		$p = Image::percentage2hex(45);
+		$this->assertEquals('73', $p);
+
+		$p = Image::percentage2hex(50);
+		$this->assertEquals('80', $p);
+
+		$p = Image::percentage2hex(85);
+		$this->assertEquals('d9', $p);
+
+		$p = Image::percentage2hex(100);
+		$this->assertEquals('ff', $p);
 	}
 
 	public function testHex2rgba()
@@ -893,7 +892,7 @@ class ImageTest extends ImageTestCase
 		$this->assertEquals('#007fff00', $color);
 
 		$color = Image::rgba2hex([0, 127, 255, 0.5]);
-		$this->assertEquals('#007fff7f', $color);
+		$this->assertEquals('#007fff80', $color);
 
 		$color = Image::rgba2hex([0, 127, 255, 100]);
 		$this->assertEquals('#007fffff', $color);
@@ -943,11 +942,11 @@ class ImageTest extends ImageTestCase
 		// direct property
 		$value = $image->getExifData('ExposureTime');
 		$this->assertEquals($value, '1/345');
-		
+
 		// multiple properties (callback is disabled in current version)
 		$value = $image->getExifData(['DateTimeOriginal', 'ExposureTime']);
 		$this->assertEquals(array(
-			'DateTimeOriginal' => '2000:11:07 10:41:43', 
+			'DateTimeOriginal' => '2000:11:07 10:41:43',
 			'ExposureTime' => '1/345',
 		), $value);
 
@@ -968,44 +967,44 @@ class ImageTest extends ImageTestCase
 
 		$this->assertEquals('2000-11-07T10:41:43+0000', $value);
 	}
-	
+
 	public function testGetDateCreated()
 	{
 		$image = Image::load(static::$imageExif, static::$lib);
-		
+
 		// return object
-		$dateCreated = $image->getDateCreated();		
+		$dateCreated = $image->getDateCreated();
 		$this->assertIsObject($dateCreated);
 		$this->assertInstanceOf('\DateTime', $dateCreated);
-		
+
 		// return string
-		$dateCreated = $image->getDateCreated(\DateTime::ISO8601);		
+		$dateCreated = $image->getDateCreated(\DateTime::ISO8601);
 		$this->assertIsString($dateCreated);
 		$this->assertEquals('2000-11-07T10:41:43+0000', $dateCreated);
 	}
-	
+
 	public function testGetGps()
 	{
 		// gps available
 		$image = Image::load(static::$imageExifGps, static::$lib);
-		
+
 		// decimal
 		$gps = $image->getGps();
 		$this->assertIsArray($gps);
 		$this->assertEquals(['lat' => 43.468365, 'lng' => 11.881634999972], $gps);
-		
+
 		// degrees minutes seconds (DMS)
 		$gps = $image->getGps(true);
 		$this->assertIsArray($gps);
 		$this->assertEquals([
-			'lat' => ['degrees' => 43, 'minutes' => 28, 'seconds' => 6.114], 
+			'lat' => ['degrees' => 43, 'minutes' => 28, 'seconds' => 6.114],
 			'lng' => ['degrees' => 11, 'minutes' => 52, 'seconds' => 53.8859999]
 		], $gps);
 		$image->destroy();
-		
+
 		// gps not available
 		$image = Image::load(static::$imageLandscape, static::$lib);
-		$gps = $image->getGps();		
+		$gps = $image->getGps();
 		$this->assertNull($gps);
 	}
 
@@ -1019,7 +1018,7 @@ class ImageTest extends ImageTestCase
 
 
 
-	
+
 
 	public function testFetExtensionFromPath()
 	{
@@ -1032,5 +1031,5 @@ class ImageTest extends ImageTestCase
 	}
 
 
-	
+
 }

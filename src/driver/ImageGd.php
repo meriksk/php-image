@@ -1,9 +1,5 @@
 <?php
-/*
-if (!function_exists('getimagesizefromstring')) {
-			throw new Exception('Required function "getimagesizefromstring()" does not exists.');
-		}
- */
+
 namespace meriksk\PhpImage\driver;
 
 use Exception;
@@ -44,30 +40,40 @@ class ImageGd extends BaseImage
 	// Loaders
 	////////////////////////////////////////////////////////////////////////////
 
+	
+	/**
+	 * Load image resource
+	 * @param string $file Image path or the image data, as a string.
+	 * @return void
+	 * @throws Exception
+	 */
 	protected function _loadFromFile($file)
 	{
+		$this->debug("_loadFromFile('{$file}')");
 		switch ($this->mime_type) {
 			case 'image/jpeg':
 				$this->resource = @imagecreatefromjpeg($file);
 			break;
 			case 'image/png':
-				$this->resource = @imagecreatefrompng($file);
+				$this->resource = imagecreatefrompng($file);
 				if ($this->resource) {
 					imagealphablending($this->resource, false);
 					imagesavealpha($this->resource, true);
 				}
 			break;
 			case 'image/gif':
-				$gif = @imagecreatefromgif($file);
-				if ($gif) {
-					$width = imagesx($gif);
-					$height = imagesy($gif);
-					$this->resource = imagecreatetruecolor($width, $height);
-					$transparentColor = imagecolorallocatealpha($this->resource, 0, 0, 0, 127);
-					imagecolortransparent($this->resource, $transparentColor);
-					imagefill($this->resource, 0, 0, $transparentColor);
-					imagecopy($this->resource, $gif, 0, 0, 0, 0, $width, $height);
-					imagedestroy($gif);
+				$img = @imagecreatefromgif($file);
+
+				if ($img) {
+					$w = imagesx($img);
+					$h = imagesy($img);
+					$this->resource = imagecreatetruecolor($w, $h);
+					$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);			
+					imagefill($this->resource, 0, 0, $transparent);
+					imagecolortransparent($this->resource, $transparent);
+					imagesavealpha($this->resource, true);
+					imagecopy($this->resource, $img, 0, 0, 0, 0, $w, $h);
+					imagedestroy($img);
 				}
 				break;
 			default:
@@ -89,6 +95,9 @@ class ImageGd extends BaseImage
 
 	protected function _ping($filename = null)
 	{
+		$this->debug("");
+		$this->debug("_ping('{$filename}')");
+
 		// filename
 		if ($filename) {
 			$info = getimagesize($filename);
@@ -101,11 +110,6 @@ class ImageGd extends BaseImage
 			$this->type = $info[2];
 			$this->mime_type = $info['mime'];
 			$this->orientation = $this->getOrientation();
-
-			// check mime type
-			if (strstr($this->mime_type, 'image/') === false) {
-				throw new Exception('Unsupported file type.');
-			}
 
 		// resource
 		} elseif ($this->isResource()) {
@@ -143,8 +147,12 @@ class ImageGd extends BaseImage
 	 */
 	protected function _destroy($resource)
 	{
-		if ($resource && is_resource($resource) && 'gd'===get_resource_type($resource)) {
-			imagedestroy($resource);
+		$this->debug("_destroy()");
+
+		if (\PHP_VERSION_ID < 80000) {
+			if ($resource && is_resource($resource) && 'gd'===get_resource_type($resource)) {
+				imagedestroy($resource);
+			}
 		}
 
 		$resource = NULL;
@@ -154,7 +162,7 @@ class ImageGd extends BaseImage
 	 * Save an image. The resulting format will be determined by the file extension.
 	 * @param string $filename
 	 * @param int $quality
-	 * @param string $imageType
+	 * @param string $mimeType
 	 * @return bool
 	 */
 	protected function _save($filename, $quality, $mimeType)
@@ -210,31 +218,33 @@ class ImageGd extends BaseImage
 	 */
 	protected function _resize($width, $height)
 	{
+		$this->debug("_resize({$width}, {$height})");
+		
 		// Generate new GD image
-		$new = imagecreatetruecolor($width, $height);
+		$img = imagecreatetruecolor($width, $height);
+		
+		if ($this->mime_type === 'image/png' || $this->mime_type === 'image/gif') {				
+			$transparency = imagecolortransparent($this->resource);
+			if ($transparency >= 0) {
+				$transparent = imagecolorsforindex($this->resource, 127);
+				$transparency = imagecolorallocate($img, $transparent['red'], $transparent['green'], $transparent['blue']);
+				imagefill($img, 0, 0, $transparency);
+				imagecolortransparent($img, $transparency);
 
-		// Preserve transparency in GIFs
-		if ($this->extension === 'gif') {
-			$transparentIndex = imagecolortransparent($this->resource);
-			$palletsize = imagecolorstotal($this->resource);
-			if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
-				$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-				$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-				imagefill($new, 0, 0, $transparentIndex);
-				imagecolortransparent($new, $transparentIndex);
-			}
-		// Preserve transparency in PNGs (benign for JPEGs)
-		} else {
-			imagealphablending($new, false);
-			imagesavealpha($new, true);
+			} elseif ($this->mime_type === 'image/png') {
+				imagealphablending($img, false);
+				$color = imagecolorallocatealpha($img, 0, 0, 0, 127);
+				imagefill($img, 0, 0, $color);
+				imagesavealpha($img, true);
+			}		
 		}
 
 		// resize
-		imagecopyresampled($new, $this->resource, 0, 0, 0, 0, $width, $height, $this->w, $this->h);
+		imagecopyresampled($img, $this->resource, 0, 0, 0, 0, $width, $height, $this->w, $this->h);
 		imagedestroy($this->resource);
 
 		// update meta data
-		$this->resource = $new;
+		$this->resource = $img;
 	}
 
 	/**
@@ -243,40 +253,50 @@ class ImageGd extends BaseImage
 	 * @param int $y
 	 * @param int $width
 	 * @param int $height
+	 * @param string|array $bgColor
 	 * @return void
 	 */
-	protected function _crop($x, $y, $width, $height)
+	protected function _crop($x, $y, $width, $height, $bgColor = null)
 	{
+		$this->debug("_crop({$x}, {$y}, {$width}, {$height}, ". json_encode($bgColor) .")");
+		
 		// new image
-		$new = imagecreatetruecolor($width, $height);
+		$img = imagecreatetruecolor($width, $height);
 
 		// Preserve transparency in GIFs
-		if ($this->extension === 'gif') {
+		if ($this->mime_type === 'image/gif') {
 			$transparentIndex = imagecolortransparent($this->resource);
 			$palletsize = imagecolorstotal($this->resource);
 			if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
 				$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-				$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-				imagefill($new, 0, 0, $transparentIndex);
-				imagecolortransparent($new, $transparentIndex);
+				$transparentIndex = imagecolorallocate($img, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+				imagefill($img, 0, 0, $transparentIndex);
+				imagecolortransparent($img, $transparentIndex);
 			}
 		// Preserve transparency in PNGs (benign for JPEGs)
 		} else {
 
-			imagealphablending($new, false);
-			imagesavealpha($new, true);
+			if ($this->mime_type === 'image/png') {
+				imagealphablending($img, false);
+				imagesavealpha($img, true);
+				
+				if ($bgColor) {
+					$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);
+				}
+			} else {
+				if ($bgColor) {
+					$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+				}
+			}
 
-			if ($this->bg_color && is_array($this->bg_color)) {
-				$color = imagecolorallocate($new, $this->bg_color['r'], $this->bg_color['g'], $this->bg_color['b']);
-				imagefill($new, 0, 0, $color);
+			if ($bgColor) {
+				imagefill($img, 0, 0, $bgColor);
 			}
 		}
 
-		imagecopy($new, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
-		//imagedestroy($this->resource);
-
-		//$this->resource = imagecrop($this->resource, ['x' => $x, 'y' => $y, 'width' => $width, 'height' => $height]);
-		$this->resource = $new;
+		imagecopy($img, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
+		$this->resource = $img;
+		imagedestroy($img);		
 	}
 
 	/**
@@ -285,42 +305,44 @@ class ImageGd extends BaseImage
 	 * @param int $height
 	 * @param bool $fill
 	 * @param bool $allowEnlarge
+	 * @param bool $bgColor
 	 */
-	protected function _thumbnail($width, $height, $fill = false, $allowEnlarge = false)
+	protected function _thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
 	{
+		
+		$this->debug("_thumbnail($width, $height, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .")");
+		
 		// new image
-		$thumb = imagecreatetruecolor($width, $height);
-		$bgColor = null;
+		$img = imagecreatetruecolor($width, $height);
 
-		if (!empty($this->bg_color)) {
-			$color = $this->bg_color;
+		switch ($this->mime_type) {
+			case 'image/png':
+			case 'image/gif':
+				
+				$alpha = ceil((1 - $bgColor['a']) * 127);
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
+				
+				if ($this->mime_type ==='image/gif') {
+					$transparentIndex = imagecolortransparent($this->resource);
+					$palletsize = imagecolorstotal($this->resource);
+					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+						imagefill($img, 0, 0, $transparentIndex);
+						imagecolortransparent($new, $transparentIndex);
+					}
+				} else {			
+					imagealphablending($img, false);
+					imagesavealpha($img, true);
+				}
+			break;
 
-			// alpha
-			if ($color['a'] < 1.0) {
-
-				imagealphablending($thumb, true);
-				imagesavealpha($thumb, true);
-
-				// alpha channel: php requires value between 0 and 127
-				$alpha = (1 - $color['a']) * 127;
-
-				$bgColor = imagecolorallocatealpha($thumb, $color['r'], $color['g'], $color['b'], $alpha);
-				imagecolortransparent($thumb, $bgColor);
-			// no alpha
-			} else {
-				$bgColor = imagecolorallocate($thumb, $color['r'], $color['g'], $color['b']);
-			}
-		} else {
-			if ($this->mime_type === 'image/png') {
-				imagealphablending($thumb, false);
-				imagesavealpha($thumb, true);
-				$bgColor = imagecolorallocatealpha($thumb, 0, 0, 0, 127);
-			}
+			default:
+				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
 		}
 
-		//imagecolortransparent($thumb);
 		if ($bgColor) {
-			imagefill($thumb, 0, 0, $bgColor);
+			imagefill($img, 0, 0, $bgColor);
 		}
 
 		// determine resize values
@@ -341,13 +363,12 @@ class ImageGd extends BaseImage
 			}
 		}
 
-		$x = ($width - $this->w) / 2;
-		$y = ($height - $this->h) / 2;
+		$x = $this->round(($width - $this->w) / 2);
+		$y = $this->round(($height - $this->h) / 2);
 
-		//imagecopyresampled($thumb, $this->resource, $x, $y, 0, 0, $this->w, $this->h, $this->w, $this->h);
-		imagecopy($thumb, $this->resource, $x, $y, 0, 0, $this->w, $this->h);
-		imagedestroy($this->resource);
-		$this->resource = $thumb;
+		imagecopy($img, $this->resource, $x, $y, 0, 0, $this->w, $this->h);
+		$this->resource = $img;
+		imagedestroy($img);
 	}
 	
 	/**
@@ -358,7 +379,6 @@ class ImageGd extends BaseImage
 	protected function _flip($mode)
 	{
 		$flipMode = null;
-
 		switch ($mode) {
 			case IMG_FLIP_HORIZONTAL:
 			case Image::FLIP_HORIZONTAL:
@@ -383,94 +403,94 @@ class ImageGd extends BaseImage
 	 * Rotate an image with a given angle and background color
 	 * @param float $angle <p>Rotation angle, in degrees. The rotation angle is 
 	 * interpreted as the number of degrees to rotate the image anticlockwise.</p>
-	 * @param string|array $bgd_color <p>Specifies the color of the uncovered 
+	 * @param array $bgColor <p>Specifies the color of the uncovered zone after the rotation
 	 * zone after the rotation</p> Transparent by default.
 	 * @return void
 	 */
-	public function _rotate($angle, $bgColor)
+	public function _rotate($angle, $bgColor = null)
 	{
+
+		$this->debug("_rotate({$angle}, ". json_encode($bgColor) .")");
+
 		// fix angle value
-		$angle = $angle < 0 ? abs($angle) : 360 - $angle;
-		$rgba = Image::normalizeColor($bgColor);
-		$alpha = (1 - $rgba['a']) * 127;
+		$angle = $angle < 0 ? abs($angle) : 360 - $angle;	
+		$alpha = round((1 - $bgColor['a']) * 127);
 
 		// perform the rotation
 		if (in_array($this->mime_type, array('image/png', 'image/gif'))) {
 			
-			$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);
-			$rotated = imagerotate($this->resource, $angle, $transparent, 1);
-			imagecolortransparent($rotated);
-
+			// transparent color
+			$transparent = imagecolorallocatealpha($this->resource, 255, 255, 255, 127);			
+			
+			// rotate, last parameter preserves alpha when true
+			$rotated = imagerotate($this->resource, $angle, $transparent);
+			imagedestroy($this->resource);
+			
+			if ($this->mime_type === 'image/png') {
+				imagealphablending($rotated, false);			
+				//imagesavealpha($rotated, true);
+			}
+			
 			$w = imagesx($rotated);
-			$h = imagesy($rotated);
+			$h = imagesy($rotated);		
+			$new = imagecreatetruecolor($w, $h);		
+			imagesavealpha($new, true);
 
-			$new = imagecreatetruecolor($w, $h);
-			imagealphablending($new, false);
-			imagesavealpha($new, true);			
-
-			$bg = imagecolorallocatealpha($new, $rgba['r'], $rgba['g'], $rgba['b'], $rgba['a']);
+			$bg = imagecolorallocatealpha($new, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);
+			imagecolortransparent($new, $bg);
 			imagefill($new, 0, 0, $bg);
-
+			
 			imagecopy($new, $rotated, 0, 0, 0, 0, $w, $h);
-			imagedestroy($rotated); $rotated = null;
-
 			$this->resource = $new;
+			imagedestroy($rotated); $rotated = null;
+			
 		} else {
-			$bg = imagecolorallocatealpha($this->resource, $rgba['r'], $rgba['g'], $rgba['b'], $alpha);
-			$this->resource = imagerotate($this->resource, $angle, $bg);
+			$bg = imagecolorallocate($this->resource, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+			$this->resource = imagerotate($this->resource, $angle, $bg, true);
 		}
 	}
 
 	/**
-	 * Set background color_
-	 * @param string|array $color
+	 * Set background color
+	 * @param array $color
 	 * @return $this
 	 */
 	protected function _setBackgroundColor($color)
 	{
-		$bg = imagecreatetruecolor($this->w, $this->h);
+		$img = imagecreatetruecolor($this->w, $this->h);
 
 		// alpha
 		if ($color['a'] < 1.0) {
-
 			if ($this->mime_type === 'image/png') {
-				imagealphablending($bg, false);
-				imagesavealpha($bg, true);
+				imagealphablending($img, false);
+				imagesavealpha($img, true);
 			}
 
-			// alpha channel: php requires value between 0 and 127
-			$alpha = (1 - $color['a']) * 127;
-			$bgColor = imagecolorallocatealpha($bg, $color['r'], $color['g'], $color['b'], $alpha);
+			$alpha = ceil((1 - $color['a']) * 127);
+			$bgColor = imagecolorallocatealpha($img, $color['r'], $color['g'], $color['b'], $alpha);
 		// no alpha
 		} else {
-			$bgColor = imagecolorallocate($bg, $color['r'], $color['g'], $color['b']);
+			$bgColor = imagecolorallocate($img, $color['r'], $color['g'], $color['b']);
 		}
 
-		imagefill($bg, 0, 0, $bgColor);
-		imagecopy($bg, $this->resource, 0, 0, 0, 0, $this->w, $this->h);
-		$this->resource = $bg;
+		imagefill($img, 0, 0, $bgColor);
+		imagecopy($img, $this->resource, 0, 0, 0, 0, $this->w, $this->h);
+		$this->resource = $img;
+		imagedestroy($img);
 
 		return $this;
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 
 
