@@ -263,35 +263,34 @@ class ImageGd extends BaseImage
 		// new image
 		$img = imagecreatetruecolor($width, $height);
 
-		// Preserve transparency in GIFs
-		if ($this->mime_type === 'image/gif') {
-			$transparentIndex = imagecolortransparent($this->resource);
-			$palletsize = imagecolorstotal($this->resource);
-			if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
-				$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-				$transparentIndex = imagecolorallocate($img, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-				imagefill($img, 0, 0, $transparentIndex);
-				imagecolortransparent($img, $transparentIndex);
-			}
-		// Preserve transparency in PNGs (benign for JPEGs)
-		} else {
+		switch ($this->mime_type) {
+			case 'image/png':
+			case 'image/gif':
 
-			if ($this->mime_type === 'image/png') {
-				imagealphablending($img, false);
-				imagesavealpha($img, true);
+				$alpha = ceil((1 - $bgColor['a']) * 127);
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
 				
-				if ($bgColor) {
-					$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);
+				if ($this->mime_type ==='image/gif') {
+					$transparentIndex = imagecolortransparent($this->resource);
+					$palletsize = imagecolorstotal($this->resource);
+					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+						imagefill($img, 0, 0, $transparentIndex);
+						imagecolortransparent($new, $transparentIndex);
+					}
+				} else {			
+					imagealphablending($img, true);
+					imagesavealpha($img, true);
 				}
-			} else {
-				if ($bgColor) {
-					$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
-				}
-			}
+			break;
 
-			if ($bgColor) {
-				imagefill($img, 0, 0, $bgColor);
-			}
+			default:
+				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+		}
+
+		if ($bgColor) {
+			imagefill($img, 0, 0, $bgColor);
 		}
 
 		imagecopy($img, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
@@ -332,7 +331,7 @@ class ImageGd extends BaseImage
 						imagecolortransparent($new, $transparentIndex);
 					}
 				} else {			
-					imagealphablending($img, false);
+					imagealphablending($img, true);
 					imagesavealpha($img, true);
 				}
 			break;

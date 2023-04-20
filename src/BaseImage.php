@@ -60,15 +60,20 @@ abstract class BaseImage
 		$this->debug("loadFromFile('{$filename}')");
 
 		// check image
-		$base64Image = $filename && substr($filename, 0, 5)==='data:';
-		if (empty($filename) || (!$base64Image && !is_file($filename) && stripos($filename, 'http')!==0)) {
-			throw new InvalidArgumentException('Invalid file data.');
+		if (empty($filename) || !is_string($filename)) {
+			throw new InvalidArgumentException('Invalid filename.');
 		}
 
+		// is base64 image
+		$isBase64 = substr($filename, 0, 5)==='data:';
+		// is url
+		$isUrl = stripos($filename, 'http')===0;
+
+		// clear memory
 		$this->destroy();
 
 		// store info
-		if (stripos($filename, 'http')===0 || $base64Image) {
+		if ($isUrl || $isBase64) {
 			$this->path = trim($filename);
 		} else {
 			$this->path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, trim($filename));
@@ -681,9 +686,10 @@ abstract class BaseImage
 	 * @param int $width
 	 * @param int $height
 	 * @param int $position
+	 * @param string|array $bgColor
 	 * @return BaseImage
 	 */
-	public function cropAuto($width, $height, $position = self::CROP_CENTER)
+	public function cropAuto($width, $height, $position = self::CROP_CENTER, $bgColor = null)
 	{
 		$this->debug("cropAuto({$width}, {$height}, {$position})");
 
@@ -696,7 +702,11 @@ abstract class BaseImage
 
 		if ($width < $this->w || $height < $this->h) {
 			list ($x, $y) = $this->getCropPosition($width, $height, $this->w, $this->h, $position);
-			$this->_crop($x, $y, $w, $h);
+			
+			$bgColor = $bgColor ? $bgColor : $this->bg_color;
+			$bgColor = Image::normalizeColor($bgColor);
+			
+			$this->_crop($x, $y, $w, $h, $bgColor);
 			$this->_ping();
 		}
 
