@@ -251,6 +251,8 @@ class ImageGd extends BaseImage
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+				imagefill($img, 0, 0, $bgColor);
+			break;
 		}
 
 		// resize
@@ -304,6 +306,8 @@ class ImageGd extends BaseImage
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+				imagefill($img, 0, 0, $bgColor);
+			break;
 		}
 
 		imagecopy($img, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
@@ -354,6 +358,8 @@ class ImageGd extends BaseImage
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+				imagefill($img, 0, 0, $bgColor);
+			break;
 		}
 
 		// determine resize values
@@ -447,9 +453,9 @@ class ImageGd extends BaseImage
 			$new = imagecreatetruecolor($w, $h);		
 			imagesavealpha($new, true);
 
-			$bg = imagecolorallocatealpha($new, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);
-			imagecolortransparent($new, $bg);
-			imagefill($new, 0, 0, $bg);
+			$bgColor = imagecolorallocatealpha($new, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);
+			imagecolortransparent($new, $bgColor);
+			imagefill($new, 0, 0, $bgColor);
 			
 			imagecopy($new, $rotated, 0, 0, 0, 0, $w, $h);
 			$this->resource = $new;
