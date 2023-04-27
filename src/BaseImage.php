@@ -447,19 +447,25 @@ abstract class BaseImage
 	 * @param int $width
 	 * @param int $height
 	 * @param bool $allowEnlarge
+	 * @param bool $returnMaxSide
 	 * @return array
 	 */
-	protected function upscaleCheck($width, $height, $allowEnlarge = NULL)
+	protected function upscaleCheck($width, $height, $allowEnlarge = null, $returnMaxSide = false)
 	{
-		if ($allowEnlarge === true) {
-			$w = $width;
-			$h = $height;
-		} else {
+		if ($allowEnlarge === false) {
 			$w = $width <= $this->w ? $width : $this->w;
 			$h = $height <= $this->h ? $height : $this->h;
+
+			if ($returnMaxSide === true) {
+				$max = max($w, $h);
+				$w = $h = $max;
+			}
+			
+			return array($w, $h);
 		}
 
-		return array($w, $h);
+		// default
+		return array($width, $height);
 	}
 
 	/**
@@ -650,6 +656,30 @@ abstract class BaseImage
 
 		return $this;
     }
+	
+	/**
+	 * Thumbnail an image
+	 * @param int $width
+	 * @param int $height
+	 * @param bool $fill
+	 * @param bool $allowEnlarge
+	 * @param string|array $bgColor
+	 * @return BaseImage
+	 */
+	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
+	{
+		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");		
+
+		$bgColor = $bgColor ? $bgColor : $this->bg_color;
+		$bgColor = Image::normalizeColor($bgColor);
+
+		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge, true);
+		
+		$this->_thumbnail($w, $h, $fill, $allowEnlarge, $bgColor);
+		$this->_ping();
+
+		return $this;
+	}
 
 	/**
 	 * Crops image according to the given coordinates
@@ -783,28 +813,6 @@ abstract class BaseImage
 
         return array($x, $y);
     }
-
-	/**
-	 * Thumbnail an image
-	 * @param int $width
-	 * @param int $height
-	 * @param bool $fill
-	 * @param bool $allowEnlarge
-	 * @param string|array $bgColor
-	 * @return BaseImage
-	 */
-	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
-	{
-		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");		
-
-		$bgColor = $bgColor ? $bgColor : $this->bg_color;
-		$bgColor = Image::normalizeColor($bgColor);
-
-		$this->_thumbnail($width, $height, $fill, $allowEnlarge, $bgColor);
-		$this->_ping();
-
-		return $this;
-	}
 
 	/**
 	 * Flips an image using a given mode

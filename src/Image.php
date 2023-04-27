@@ -583,7 +583,7 @@ class Image
 	 */
 	public function cropAuto($width, $height, $position = self::CROP_CENTER, $bgColor = null)
 	{
-		$this->driver->cropAuto($width, $height, $position);
+		$this->driver->cropAuto($width, $height, $position, $bgColor);
 		return $this;
 	}
 
@@ -716,21 +716,19 @@ class Image
 	 */
 	public static function normalizeColor($color, $defaultColor = null)
 	{
-		$c = array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0.0);
-		$color = $color ? $color : ($defaultColor ? $defaultColor : '#ffffff');
-		if ($color===null || $color === self::COLOR_TRANSPARENT) {
-			return $c;
+		if ($color===null) {
+			return array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0.0);
 		}
 		
 		if ($color) {
 			if (is_array($color)) {
 				$hex = self::rgba2hex($color);
 				return self::hex2rgba($hex);
-			} else {
+			} else {				
 				return self::hex2rgba((string)$color);
 			}
 		}
-		
+
 		// default
 		return $c;
 	}
@@ -810,12 +808,12 @@ class Image
 
 		if (is_string($color)) {
 			$color = trim(strtolower($color), '#');
+
 			switch ($color) {
 				
 				// black
 				case 'black':
 				case '000':
-				case '0000':
 				case '000000':
 				case '000000ff':
 				case self::COLOR_BLACK:
@@ -825,7 +823,6 @@ class Image
 				// white
 				case 'white':
 				case 'fff':
-				case 'ffff':
 				case 'ffffff':
 				case 'ffffffff':
 				case self::COLOR_WHITE:
@@ -834,7 +831,6 @@ class Image
 	
 				// transparent
 				case 'transparent':
-				case '0000':
 				case '00000000':
 				case 'ffffff00':
 				case self::COLOR_TRANSPARENT:

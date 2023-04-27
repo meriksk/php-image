@@ -225,33 +225,32 @@ class ImageGd extends BaseImage
 		$img = imagecreatetruecolor($width, $height);
 		
 		switch ($this->mime_type) {
-			case 'image/png':
 			case 'image/gif':
-				
 				$alpha = ceil((1 - $bgColor['a']) * 127);
 				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
 				
-				if ($this->mime_type ==='image/gif') {
-					$transparentIndex = imagecolortransparent($this->resource);
-					$palletsize = imagecolorstotal($this->resource);
-					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
-						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-						imagefill($img, 0, 0, $transparentIndex);
-						imagecolortransparent($new, $transparentIndex);
-					}
-				} else {			
-					imagealphablending($img, true);
-					imagesavealpha($img, true);
+				$transparentIndex = imagecolortransparent($this->resource);
+				$palletsize = imagecolorstotal($this->resource);
+				if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+					$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+					$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+					imagefill($img, 0, 0, $transparentIndex);
+					imagecolortransparent($new, $transparentIndex);
 				}
+				
+				imagefill($img, 0, 0, $bgColor);
+			break;
+	
+			case 'image/png':
+				imagealphablending($img, true);
+				imagesavealpha($img, true);
+				$alpha = ceil((1.0 - $bgColor['a']) * 127); // 127=transparent
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
+				imagefill($img, 0, 0, $bgColor);
 			break;
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
-		}
-
-		if ($bgColor) {
-			imagefill($img, 0, 0, $bgColor);
 		}
 
 		// resize
@@ -279,33 +278,32 @@ class ImageGd extends BaseImage
 		$img = imagecreatetruecolor($width, $height);
 
 		switch ($this->mime_type) {
-			case 'image/png':
 			case 'image/gif':
-				
 				$alpha = ceil((1 - $bgColor['a']) * 127);
 				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
 				
-				if ($this->mime_type ==='image/gif') {
-					$transparentIndex = imagecolortransparent($this->resource);
-					$palletsize = imagecolorstotal($this->resource);
-					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
-						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-						imagefill($img, 0, 0, $transparentIndex);
-						imagecolortransparent($new, $transparentIndex);
-					}
-				} else {			
-					imagealphablending($img, true);
-					imagesavealpha($img, true);
+				$transparentIndex = imagecolortransparent($this->resource);
+				$palletsize = imagecolorstotal($this->resource);
+				if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+					$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+					$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+					imagefill($img, 0, 0, $transparentIndex);
+					imagecolortransparent($new, $transparentIndex);
 				}
+				
+				imagefill($img, 0, 0, $bgColor);
+			break;
+	
+			case 'image/png':
+				imagealphablending($img, true);
+				imagesavealpha($img, true);
+				$alpha = ceil((1.0 - $bgColor['a']) * 127); // 127=transparent
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
+				imagefill($img, 0, 0, $bgColor);
 			break;
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
-		}
-
-		if ($bgColor) {
-			imagefill($img, 0, 0, $bgColor);
 		}
 
 		imagecopy($img, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
@@ -325,38 +323,37 @@ class ImageGd extends BaseImage
 	{
 		
 		$this->debug("_thumbnail($width, $height, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .")");
-		
+
 		// new image
 		$img = imagecreatetruecolor($width, $height);
 
 		switch ($this->mime_type) {
-			case 'image/png':
 			case 'image/gif':
-				
 				$alpha = ceil((1 - $bgColor['a']) * 127);
 				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
 				
-				if ($this->mime_type ==='image/gif') {
-					$transparentIndex = imagecolortransparent($this->resource);
-					$palletsize = imagecolorstotal($this->resource);
-					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
-						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
-						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-						imagefill($img, 0, 0, $transparentIndex);
-						imagecolortransparent($new, $transparentIndex);
-					}
-				} else {			
-					imagealphablending($img, true);
-					imagesavealpha($img, true);
+				$transparentIndex = imagecolortransparent($this->resource);
+				$palletsize = imagecolorstotal($this->resource);
+				if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+					$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+					$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+					imagefill($img, 0, 0, $transparentIndex);
+					imagecolortransparent($new, $transparentIndex);
 				}
+				
+				imagefill($img, 0, 0, $bgColor);
+			break;
+	
+			case 'image/png':
+				imagealphablending($img, true);
+				imagesavealpha($img, true);
+				$alpha = ceil((1.0 - $bgColor['a']) * 127); // 127=transparent
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
+				imagefill($img, 0, 0, $bgColor);
 			break;
 
 			default:
 				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
-		}
-
-		if ($bgColor) {
-			imagefill($img, 0, 0, $bgColor);
 		}
 
 		// determine resize values
