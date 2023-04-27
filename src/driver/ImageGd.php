@@ -295,7 +295,7 @@ class ImageGd extends BaseImage
 
 		imagecopy($img, $this->resource, 0, 0, $x, $y, $this->w, $this->h);
 		$this->resource = $img;
-		imagedestroy($img);		
+		//imagedestroy($img);	
 	}
 
 	/**
@@ -367,7 +367,7 @@ class ImageGd extends BaseImage
 
 		imagecopy($img, $this->resource, $x, $y, 0, 0, $this->w, $this->h);
 		$this->resource = $img;
-		imagedestroy($img);
+		//imagedestroy($img);
 	}
 	
 	/**
@@ -475,7 +475,7 @@ class ImageGd extends BaseImage
 		imagefill($img, 0, 0, $bgColor);
 		imagecopy($img, $this->resource, 0, 0, 0, 0, $this->w, $this->h);
 		$this->resource = $img;
-		imagedestroy($img);
+		//imagedestroy($img);
 
 		return $this;
 	}
