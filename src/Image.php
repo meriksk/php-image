@@ -481,11 +481,12 @@ class Image
 	 * @param int|array $width Desired width - number or array [w, h]
 	 * @param int|null $height Desired height, if omitted - assumed equal to $width
 	 * @param bool $allowEnlarge
+	 * @param string|array $bgColor
 	 * @return static
 	 */
-	public function resize($width, $height, $allowEnlarge = true)
+	public function resize($width, $height, $allowEnlarge = true, $bgColor = null)
 	{
-		$this->driver->resize($width, $height, $allowEnlarge);
+		$this->driver->resize($width, $height, $allowEnlarge, $bgColor);
 		return $this;
 	}
 
@@ -493,11 +494,12 @@ class Image
      * Resizes image according to the given width (height proportional)
      * @param int $width
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToWidth($width, $allowEnlarge = true)
+    public function resizeToWidth($width, $allowEnlarge = true, $bgColor = null)
     {
-		$this->driver->resizeToWidth($width, $allowEnlarge);
+		$this->driver->resizeToWidth($width, $allowEnlarge, $bgColor);
         return $this;
     }
 
@@ -505,11 +507,12 @@ class Image
      * Resizes image according to the given height (width proportional)
      * @param int $height
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToHeight($height, $allowEnlarge = true)
+    public function resizeToHeight($height, $allowEnlarge = true, $bgColor = null)
     {
-		$this->driver->resizeToHeight($height, $allowEnlarge);
+		$this->driver->resizeToHeight($height, $allowEnlarge, $bgColor);
         return $this;
     }
 
@@ -517,11 +520,12 @@ class Image
      * Resizes image according to the given short side (long side proportional)
      * @param int $max
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToShortSide($max, $allowEnlarge = true)
+    public function resizeToShortSide($max, $allowEnlarge = true, $bgColor = null)
     {
-        $this->driver->resizeToShortSide($max, $allowEnlarge);
+        $this->driver->resizeToShortSide($max, $allowEnlarge, $bgColor);
         return $this;
     }
 
@@ -529,11 +533,12 @@ class Image
      * Resizes image according to the given long side (short side proportional)
      * @param int $max
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToLongSide($max, $allowEnlarge = true)
+    public function resizeToLongSide($max, $allowEnlarge = true, $bgColor = null)
     {
-        $this->driver->resizeToLongSide($max, $allowEnlarge);
+        $this->driver->resizeToLongSide($max, $allowEnlarge, $bgColor);
         return $this;
     }
 
@@ -542,11 +547,12 @@ class Image
      * @param int $maxWidth
      * @param int $maxHeight
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge = true)
+    public function resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge = true, $bgColor = null)
     {
-        $this->driver->resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge);
+        $this->driver->resizeToBestFit($maxWidth, $maxHeight, $allowEnlarge, $bgColor);
 		return $this;
     }
 
@@ -557,12 +563,12 @@ class Image
 	 * @param int $width
 	 * @param int $height
 	 * @param bool $allowEnlarge
-	 * @param string|array $bgImage
+	 * @param string|array $bgColor
 	 * @return static
 	 */
-	public function crop($x, $y, $width, $height, $allowEnlarge = false, $bgImage = null)
+	public function crop($x, $y, $width, $height, $allowEnlarge = false, $bgColor = null)
 	{
-		$this->driver->crop($x, $y, $width, $height, $allowEnlarge, $bgImage);
+		$this->driver->crop($x, $y, $width, $height, $allowEnlarge, $bgColor);
 		return $this;
 	}
 
@@ -572,9 +578,10 @@ class Image
 	 * @param int $height
 	 * @param bool $allowEnlarge
 	 * @param int $position
+	 * @param string|array $bgColor
 	 * @return static
 	 */
-	public function cropAuto($width, $height, $position = self::CROP_CENTER)
+	public function cropAuto($width, $height, $position = self::CROP_CENTER, $bgColor = null)
 	{
 		$this->driver->cropAuto($width, $height, $position);
 		return $this;
@@ -586,7 +593,7 @@ class Image
 	 * @param int $height
 	 * @param bool $fill
 	 * @param bool $enlarge
-	 * @param bool $bgColor
+	 * @param string|array $bgColor
 	 * @return static
 	 * @throws Exception
 	 */
@@ -692,7 +699,7 @@ class Image
 
 	/**
 	 * Set background color
-	 * @param string|array $color
+	 * @param string|array $bgColor
 	 * @return $this
 	 */
 	public function setBackgroundColor($color)
@@ -708,7 +715,7 @@ class Image
 	 * @return array RGBa value
 	 */
 	public static function normalizeColor($color, $defaultColor = null)
-	{	
+	{
 		$c = array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0.0);
 		$color = $color ? $color : ($defaultColor ? $defaultColor : '#ffffff');
 		if ($color===null || $color === self::COLOR_TRANSPARENT) {

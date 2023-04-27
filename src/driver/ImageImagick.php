@@ -176,7 +176,7 @@ class ImageImagick extends BaseImage
 	 * @param int $height
 	 * @return void
 	 */
-	protected function _resize($width, $height)
+	protected function _resize($width, $height, $bgColor = null)
 	{
 		//$this->resource->adaptiveResizeImage($width, $height, true);
 		$this->resource->resizeImage($width, $height, Imagick::FILTER_LANCZOS, 1);

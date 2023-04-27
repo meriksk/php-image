@@ -35,7 +35,7 @@ abstract class BaseImage
 	abstract protected function _destroy($resource);
 	abstract protected function _save($filename, $quality, $mimeType);
 	abstract protected function _output($quality, $mimeType);
-	abstract protected function _resize($width, $height);
+	abstract protected function _resize($width, $height, $bgColor);
 	abstract protected function _crop($x, $y, $width, $height, $bgColor);
 	abstract protected function _thumbnail($width, $height, $fill, $allowEnlarge, $bgColor);
 	abstract protected function _flip($mode);
@@ -395,7 +395,7 @@ abstract class BaseImage
 	public function toDataUri($quality = 100, $imageType = null)
 	{
 		$image = $this->output($quality, $imageType);
-		return $image ? 'data:'. base64_encode($image['mime_type']) .';base64,'. base64_encode($image['data']) : false;
+		return $image ? 'data:'. $image['mime_type'] .';base64,'. base64_encode($image['data']) : false;
 	}
 
 	/**
@@ -484,9 +484,10 @@ abstract class BaseImage
 	 * @param int $width Desired width
 	 * @param int $height Desired height
 	 * @param bool $allowEnlarge
+	 * @param string|array $bgColor
 	 * @return BaseImage
 	 */
-	public function resize($width, $height, $allowEnlarge = true)
+	public function resize($width, $height, $allowEnlarge = true, $bgColor = null)
 	{
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw InvalidArgumentException('Width and height value must be an integer and must be non negative.');
@@ -499,9 +500,12 @@ abstract class BaseImage
 
 		// upscale check
 		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge);
+		
+		$bgColor = $bgColor ? $bgColor : $this->bg_color;
+		$bgColor = Image::normalizeColor($bgColor);
 
 		$this->debug("resize($width, $height, ". ($allowEnlarge===true ? "true":"false") .")");
-		$this->_resize($w, $h);
+		$this->_resize($w, $h, $bgColor);
 		$this->_ping();
 
 		return $this;
@@ -511,9 +515,10 @@ abstract class BaseImage
      * Resizes image according to the given width (height proportional)
      * @param int $width
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return BaseImage
      */
-    public function resizeToWidth($width, $allowEnlarge = true)
+    public function resizeToWidth($width, $allowEnlarge = true, $bgColor = null)
     {
 		if (!is_numeric($width) || $width <= 0) {
 			throw InvalidArgumentException('Width must be an integer and must be non negative.');
@@ -528,7 +533,7 @@ abstract class BaseImage
         }
 
 		$this->debug("resizeToWidth($width, ". ($allowEnlarge===true ? "true":"false") .")");
-        $this->resize($width, $height, $allowEnlarge);
+        $this->resize($width, $height, $allowEnlarge, $bgColor);
 		return $this;
     }
 
@@ -536,9 +541,10 @@ abstract class BaseImage
      * Resizes image according to the given width (height proportional)
      * @param int $height
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return BaseImage
      */
-    public function resizeToHeight($height, $allowEnlarge = true)
+    public function resizeToHeight($height, $allowEnlarge = true, $bgColor = null)
     {
 		if (!is_numeric($height) || $height <= 0) {
 			throw InvalidArgumentException('Height must be an integer and must be non negative.');
@@ -553,7 +559,7 @@ abstract class BaseImage
         }
 
 		$this->debug("resizeToHeight($height, ". ($allowEnlarge===true ? "true":"false") .")");
-        $this->resize($width, $height, $allowEnlarge);
+        $this->resize($width, $height, $allowEnlarge, $bgColor);
 		return $this;
     }
 
@@ -561,9 +567,10 @@ abstract class BaseImage
      * Resizes image according to the given short side (short side proportional)
      * @param int $maxShort
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return static
      */
-    public function resizeToShortSide($maxShort, $allowEnlarge = true)
+    public function resizeToShortSide($maxShort, $allowEnlarge = true, $bgColor = null)
     {
 		if (!is_numeric($maxShort) || $maxShort <= 0) {
 			throw InvalidArgumentException('Size must an integer and must be non negative.');
@@ -574,11 +581,11 @@ abstract class BaseImage
         if ($this->h < $this->w) {
             $ratio = $maxShort / $this->h;
             $long = $this->round($this->w * $ratio);
-            $this->resize($long, $maxShort, $allowEnlarge);
+            $this->resize($long, $maxShort, $allowEnlarge, $bgColor);
         } else {
             $ratio = $maxShort / $this->w;
             $long = $this->round($this->h * $ratio);
-            $this->resize($maxShort, $long, $allowEnlarge);
+            $this->resize($maxShort, $long, $allowEnlarge, $bgColor);
         }
     }
 
@@ -586,9 +593,10 @@ abstract class BaseImage
      * Resizes image according to the given long side (short side proportional)
      * @param int $max
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return void
      */
-    public function resizeToLongSide($maxLong, $allowEnlarge = true)
+    public function resizeToLongSide($maxLong, $allowEnlarge = true, $bgColor = null)
     {
 		if (!is_numeric($maxLong) || $maxLong <= 0) {
 			throw InvalidArgumentException('Size must an integer and must be non negative.');
@@ -599,11 +607,11 @@ abstract class BaseImage
         if ($this->h > $this->w) {
             $ratio = $maxLong / $this->h;
             $short = $this->round($this->w * $ratio);
-            $this->resize($short, $maxLong, $allowEnlarge);
+            $this->resize($short, $maxLong, $allowEnlarge, $bgColor);
         } else {
             $ratio = $maxLong / $this->w;
             $short = $this->round($this->h * $ratio);
-            $this->resize($maxLong, $short, $allowEnlarge);
+            $this->resize($maxLong, $short, $allowEnlarge, $bgColor);
         }
     }
 
@@ -612,9 +620,10 @@ abstract class BaseImage
      * @param int $width
      * @param int $height
      * @param bool $allowEnlarge
+	 * @param string|array $bgColor
      * @return BaseImage
      */
-    public function resizeToBestFit($width, $height, $allowEnlarge = true)
+    public function resizeToBestFit($width, $height, $allowEnlarge = true, $bgColor = null)
     {
 
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
@@ -634,9 +643,9 @@ abstract class BaseImage
 		$this->debug("resizeToBestFit($width, $height, ". ($allowEnlarge===true ? "true":"false") .")");
 
 		if ($srcRatio > $dstRatio) {
-			$this->resizeToWidth($w, $allowEnlarge);
+			$this->resizeToWidth($w, $allowEnlarge, $bgColor);
 		} else {
-			$this->resizeToHeight($h, $allowEnlarge);
+			$this->resizeToHeight($h, $allowEnlarge, $bgColor);
 		}
 
 		return $this;

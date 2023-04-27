@@ -214,29 +214,44 @@ class ImageGd extends BaseImage
 	 * Resize an image to the specified dimensions
 	 * @param int $width
 	 * @param int $height
+	 * @param string|array $bgColor
 	 * @return void
 	 */
-	protected function _resize($width, $height)
+	protected function _resize($width, $height, $bgColor = null)
 	{
 		$this->debug("_resize({$width}, {$height})");
 		
 		// Generate new GD image
 		$img = imagecreatetruecolor($width, $height);
 		
-		if ($this->mime_type === 'image/png' || $this->mime_type === 'image/gif') {				
-			$transparency = imagecolortransparent($this->resource);
-			if ($transparency >= 0) {
-				$transparent = imagecolorsforindex($this->resource, 127);
-				$transparency = imagecolorallocate($img, $transparent['red'], $transparent['green'], $transparent['blue']);
-				imagefill($img, 0, 0, $transparency);
-				imagecolortransparent($img, $transparency);
+		switch ($this->mime_type) {
+			case 'image/png':
+			case 'image/gif':
+				
+				$alpha = ceil((1 - $bgColor['a']) * 127);
+				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
+				
+				if ($this->mime_type ==='image/gif') {
+					$transparentIndex = imagecolortransparent($this->resource);
+					$palletsize = imagecolorstotal($this->resource);
+					if ($transparentIndex >= 0 && $transparentIndex < $palletsize) {
+						$transparentColor = imagecolorsforindex($this->resource, $transparentIndex);
+						$transparentIndex = imagecolorallocate($new, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+						imagefill($img, 0, 0, $transparentIndex);
+						imagecolortransparent($new, $transparentIndex);
+					}
+				} else {			
+					imagealphablending($img, true);
+					imagesavealpha($img, true);
+				}
+			break;
 
-			} elseif ($this->mime_type === 'image/png') {
-				imagealphablending($img, false);
-				$color = imagecolorallocatealpha($img, 0, 0, 0, 127);
-				imagefill($img, 0, 0, $color);
-				imagesavealpha($img, true);
-			}		
+			default:
+				$bgColor = imagecolorallocate($img, $bgColor['r'], $bgColor['g'], $bgColor['b']);
+		}
+
+		if ($bgColor) {
+			imagefill($img, 0, 0, $bgColor);
 		}
 
 		// resize
@@ -266,7 +281,7 @@ class ImageGd extends BaseImage
 		switch ($this->mime_type) {
 			case 'image/png':
 			case 'image/gif':
-
+				
 				$alpha = ceil((1 - $bgColor['a']) * 127);
 				$bgColor = imagecolorallocatealpha($img, $bgColor['r'], $bgColor['g'], $bgColor['b'], $alpha);				
 				
