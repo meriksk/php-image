@@ -556,6 +556,20 @@ class Image
 		return $this;
     }
 
+    /**
+     * Resizes image to worst fit inside the given dimensions
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @param bool $allowEnlarge
+	 * @param string|array $bgColor
+     * @return static
+     */
+    public function resizeToWorstFit($maxWidth, $maxHeight, $allowEnlarge = true, $bgColor = null)
+    {
+        $this->driver->resizeToWorstFit($maxWidth, $maxHeight, $allowEnlarge, $bgColor);
+		return $this;
+    }
+
 	/**
 	 * Crops image according to the given coordinates.
 	 * @param int $x
