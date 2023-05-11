@@ -5,7 +5,6 @@ namespace meriksk\PhpImage;
 use Exception;
 use InvalidArgumentException;
 
-
 abstract class BaseImage
 {
 
@@ -408,6 +407,7 @@ abstract class BaseImage
 	{
 		$image = $this->output($quality, $imageType);
 		if ($image) {
+			header('Content-Lenght: ' . $image['size']);
 			header('Content-Type: ' . $image['mime_type']);
 			echo $image['data'];
 		}
@@ -460,7 +460,7 @@ abstract class BaseImage
 				$max = max($w, $h);
 				$w = $h = $max;
 			}
-			
+
 			return array($w, $h);
 		}
 
@@ -506,7 +506,7 @@ abstract class BaseImage
 
 		// upscale check
 		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge);
-		
+
 		$bgColor = $bgColor ? $bgColor : $this->bg_color;
 		$bgColor = Image::normalizeColor($bgColor);
 
@@ -583,7 +583,7 @@ abstract class BaseImage
 		}
 
 		$this->debug("resizeToShortSide($maxShort, ". ($allowEnlarge===true ? "true":"false") .")");
-		
+
         if ($this->w < $this->h) {
             return $this->resizeToWidth($maxShort, $allowEnlarge, $bgColor);
         } else {
@@ -640,7 +640,7 @@ abstract class BaseImage
 
 		return $this;
     }
-	
+
     /**
      * Resizes image to worst fit inside the given dimensions
      * @param int $width
@@ -656,16 +656,16 @@ abstract class BaseImage
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw new InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
-		
+
 		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge);
-		
+
         if ($this->h / $this->w > $h / $w) {
             return $this->resizeToWidth($w, $allowEnlarge, $bgColor);
         } else {
             return $this->resizeToHeight($h, $allowEnlarge, $bgColor);
         }
     }
-	
+
 	/**
 	 * Thumbnail an image
 	 * @param int $width
@@ -677,17 +677,17 @@ abstract class BaseImage
 	 */
 	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
 	{
-		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");		
+		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");
 
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw new InvalidArgumentException('Width and height value must be an integer and must be non negative.');
 		}
-		
+
 		$bgColor = $bgColor ? $bgColor : $this->bg_color;
 		$bgColor = Image::normalizeColor($bgColor);
 
 		list ($w, $h) = $this->upscaleCheck($width, $height, $allowEnlarge, true);
-		
+
 		$this->_thumbnail($w, $h, $fill, $allowEnlarge, $bgColor);
 		$this->_ping();
 
@@ -726,7 +726,7 @@ abstract class BaseImage
 
 		$bgColor = $bgColor ? $bgColor : $this->bg_color;
 		$bgColor = Image::normalizeColor($bgColor);
-		
+
 		$this->_crop($x, $y, $w, $h, $bgColor);
 		$this->_ping();
 
@@ -754,10 +754,10 @@ abstract class BaseImage
 
 		if ($width < $this->w || $height < $this->h) {
 			list ($x, $y) = $this->getCropPosition($width, $height, $this->w, $this->h, $position);
-			
+
 			$bgColor = $bgColor ? $bgColor : $this->bg_color;
 			$bgColor = Image::normalizeColor($bgColor);
-			
+
 			$this->_crop($x, $y, $w, $h, $bgColor);
 			$this->_ping();
 		}
@@ -861,7 +861,7 @@ abstract class BaseImage
 
 		$bgColor = $bgColor ? $bgColor : $this->bg_color;
 		$bgColor = Image::normalizeColor($bgColor);
-		
+
 		$this->_rotate($angle, $bgColor);
 		$this->_ping();
 

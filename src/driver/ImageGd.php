@@ -205,9 +205,10 @@ class ImageGd extends BaseImage
 				throw new Exception('Unsupported image format: ' . $mimeType);
 		}
 
-		$data = ob_get_clean();
+		$size = ob_get_length();
+		$data = ob_get_clean();	
 
-		return $result ? array('mime_type' => $mimeType, 'data' => $data) : false;
+		return $result ? array('mime_type' => $mimeType, 'size' => $size, 'data' => $data) : false;
 	}
 
 	/**
