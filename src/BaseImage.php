@@ -416,6 +416,34 @@ abstract class BaseImage
 	}
 
 	/**
+	 * Outputs the image to the browser as an attachment to be downloaded to local storage.
+	 * @param string If omitted - original file will be used
+	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $imageType If omitted or null - image type of original file will be used (extension or mime-type)
+	 * @return void
+	 */
+	public function download($filename = null, $quality = 100, $imageType = null)
+	{
+		$filename = !empty($filename) ? $filename : basename($this->path);
+
+        if (empty($filename) || $filename === null) {
+            throw new Exception('Filename must not be empty.');
+        }
+
+		$image = $this->output($quality, $imageType);
+
+		if ($image) {
+			header('Content-Lenght: ' . $image['size']);
+			header('Content-Type: ' . $image['mime_type']);
+			header('Cache-Control: no-store, no-cache');
+			header('Content-Disposition: attachment; filename="'. $filename .'"');
+			echo $image['data'];
+		}
+
+		$image = null;
+	}
+
+	/**
 	 * Check mime type
 	 * @param string $mimeType
 	 * @throws Exception

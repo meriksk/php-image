@@ -189,7 +189,7 @@ class Image
 
 	/**
 	 * Creates a new image from a base64 encoded string.
-	 * @param string $string The raw image data encoded as a base64 string.
+	 * @param string $data The raw image data encoded as a base64 string.
 	 * @param string $driver Image library driver
 	 * @return \meriksk\PhpImage
 	 */
@@ -474,6 +474,18 @@ class Image
 	public function toScreen($quality = null, $imageType = null)
 	{
 		$this->driver->toScreen($quality, $imageType);
+	}
+	
+	/**
+	 * Outputs the image to the browser as an attachment to be downloaded to local storage.
+	 * @param string If omitted - original file will be used
+	 * @param int $quality Output image quality in percents 0-100
+	 * @param string $imageType If omitted or null - image type of original file will be used (extension or mime-type)
+	 * @return void
+	 */
+	public function download($filename = null, $quality = null, $imageType = null)
+	{
+		$this->driver->download($filename, $quality, $imageType);
 	}
 	
 	/**
