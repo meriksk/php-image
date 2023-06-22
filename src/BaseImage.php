@@ -19,6 +19,7 @@ abstract class BaseImage
 	public $extension;
 	public $orientation;
 	public $exif;
+	public $autoRotate = true;
 
 	protected $dataBase64String;
 	protected $bg_color;
@@ -30,15 +31,15 @@ abstract class BaseImage
 	abstract protected function _loadFromFile($file);
 
 	// helpers
-	abstract protected function _ping($filename);
+	abstract protected function _ping($filename = null);
 	abstract protected function _destroy($resource);
 	abstract protected function _save($filename, $quality, $mimeType);
 	abstract protected function _output($quality, $mimeType);
-	abstract protected function _resize($width, $height, $bgColor);
-	abstract protected function _crop($x, $y, $width, $height, $bgColor);
-	abstract protected function _thumbnail($width, $height, $fill, $allowEnlarge, $bgColor);
+	abstract protected function _resize($width, $height, $bgColor = null);
+	abstract protected function _crop($x, $y, $width, $height, $bgColor = null);
+	abstract protected function _thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null);
 	abstract protected function _flip($mode);
-	abstract protected function _rotate($angle, $bgColor);
+	abstract protected function _rotate($angle, $bgColor = null);
 	abstract protected function _setBackgroundColor($color);
 
 
@@ -94,14 +95,18 @@ abstract class BaseImage
             throw new Exception('Could not read file.');
         }
 
+		// fix rotation
+		if ($this->autoRotate===true) {
+			$this->autoRotate();
+		}
+
 		return $this;
 	}
 
 	/**
 	 * Creates a new image from a string.
 	 * @param string $string The raw image data as a string.
-	 * @example
-	 *    $string = file_get_contents('image.jpg');
+	 * @param bool $encode Encode data with MIME base64
 	 * @return Image
 	 */
 	public function loadFromString($data, $encode = true)
@@ -769,7 +774,7 @@ abstract class BaseImage
 	 * @param string|array $bgColor
 	 * @return BaseImage
 	 */
-	public function cropAuto($width, $height, $position = self::CROP_CENTER, $bgColor = null)
+	public function cropAuto($width, $height, $position = Image::CROP_CENTER, $bgColor = null)
 	{
 		$this->debug("cropAuto({$width}, {$height}, {$position})");
 
@@ -876,7 +881,7 @@ abstract class BaseImage
 	 * interpreted as the number of degrees to rotate the image anticlockwise.</p>
 	 * @param string|array $bgd_color <p>Specifies the color of the uncovered
 	 * zone after the rotation</p> Transparent by default.
-	 * @return void
+	 * @return static
 	 */
 	public function rotate($angle, $bgColor = null)
 	{
@@ -897,9 +902,10 @@ abstract class BaseImage
 	}
 
 	/**
-	 * Auto-adjust photo orientation
+	 * Auto-adjust image rotation based on EXIF 'orientation'
+	 * @return static
 	 */
-	protected function autoRotate()
+	public function autoRotate()
 	{
 		$this->debug("autoRotate()");
 
@@ -910,9 +916,8 @@ abstract class BaseImage
 			return $this;
 		}
 
-		$driverImagick = get_class($this->driver)==='ImageImagick';
-
 		// correct EXIF rotation information
+		$driverImagick = self::$driver === Image::DRIVER_IMAGICK;
 		if ($driverImagick) {
 			$this->debug("autoRotate()\t\treseting EXIF orientation: " . Imagick::ORIENTATION_TOPLEFT);
 			$this->resource->setImageOrientation(Imagick::ORIENTATION_TOPLEFT);

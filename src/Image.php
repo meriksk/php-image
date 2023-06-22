@@ -39,8 +39,12 @@ class Image
 	const FLIP_VERTICAL = 'vertical';
 	const FLIP_BOTH = 'both';
 	
+	public static $enableAutoRotate = true;
 	public static $allowUpscale = false;
 	public static $debug = false;
+	public static $test;
+
+	public $autoRotate;
 	public $driver;
 
 
@@ -48,15 +52,27 @@ class Image
 	 * Class constructor
 	 * @param string $filename
 	 * @param string $driver
+	 * @param array $options
 	 * @throws Exception
 	 */
-	public function __construct($filename = null, $driver = null)
+	public function __construct($filename = null, $driver = null, $options = array())
 	{
 		// init driver
 		$this->driver = DriverFactory::get($driver);
 
+		if (is_array($options)) {
+			foreach ($options as $key => $value) {
+				if (property_exists($this, $key)) {
+					$this->{$key} = $value;
+				} else {
+					throw new Exception('Unsetting an unknown or read-only property: ' . get_class($this) . '::' . $key);
+				}
+			}
+		}
+
 		// load image
 		if ($filename !== null) {
+			$this->driver->autoRotate = !is_null($this->autoRotate) ? $this->autoRotate===true : self::$enableAutoRotate;
 			$this->driver->loadFromFile($filename);
 		}
 	}
@@ -112,7 +128,7 @@ class Image
 	 *
 	 * @param string $file The image file to load.
 	 * @param string $driver Image library driver
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
 	public static function load($file, $driver = null)
@@ -126,7 +142,7 @@ class Image
 	 * Loads an image from a file.
 	 *
 	 * @param string $file The image file to load.
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
 	public function loadFromFile($file)
@@ -140,7 +156,7 @@ class Image
 	 *
 	 * @param string $file The image file to load.
 	 * @param string $driver Image library driver
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
 	public static function fromFile($file, $driver = null)
@@ -154,7 +170,7 @@ class Image
 	 * Loads an image from a string.
 	 *
 	 * @param string $data The raw image data as a string.
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 * @throws \Exception Thrown if file or image data is invalid.
 	 */
 	public function loadFromString($data)
@@ -167,7 +183,7 @@ class Image
 	 * Creates a new image from a string.
 	 * @param string $data The raw image data as a string.
 	 * @param string $driver Image library driver
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 */
 	public static function fromString($data, $driver = null)
 	{
@@ -179,7 +195,7 @@ class Image
 	/**
 	 * Creates a new image from a base64 encoded string.
 	 * @param string $string The raw image data encoded as a base64 string.
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 */
 	public function loadFromBase64($data)
 	{
@@ -191,7 +207,7 @@ class Image
 	 * Creates a new image from a base64 encoded string.
 	 * @param string $data The raw image data encoded as a base64 string.
 	 * @param string $driver Image library driver
-	 * @return \meriksk\PhpImage
+	 * @return \meriksk\PhpImage\Image
 	 */
 	public static function fromBase64($data, $driver = null)
 	{
@@ -655,7 +671,7 @@ class Image
 
 	/**
 	 * Rotates an image.
-	 * @param int $angle Rotation angle in degrees. Supports negative values.
+	 * @param int $angle Rotation angle in degrees. Supports negative values.z
 	 * @param string|array $bgColor Hex color string, array(red, green, blue) or array(red, green, blue, alpha).
 	 * Transparent by default.
 	 * @return static
@@ -671,55 +687,12 @@ class Image
 	}
 	
 	/**
-	 * Auto-adjust photo orientation
+	 * Auto-adjust image rotation based on EXIF 'orientation'
+	 * @return static
 	 */
-	protected function autoRotate()
+	public function autoRotate()
 	{
-		$this->debug("autoRotate()");
-
-		// adjust orientation if EXIF lib is available
-		$orientation = $this->getExifData('orientation');
-
-		if (empty($orientation)) {
-			return $this;
-		}
-
-		$driverImagick = get_class($this->driver)==='ImageImagick';
-
-		// correct EXIF rotation information
-		if ($driverImagick) {
-			$this->debug("autoRotate()\t\treseting EXIF orientation: " . Imagick::ORIENTATION_TOPLEFT);
-			$this->resource->setImageOrientation(Imagick::ORIENTATION_TOPLEFT);
-		}
-
-		switch ($orientation) {
-			case 2:
-				$this->flip();
-				break;
-			case 3:
-				$this->rotate(180);
-				break;
-			case 4:
-				$this->rotate(180)->flip();
-				break;
-			case 5:
-				$this->rotate(90)->flip();
-				break;
-			case 6:
-				$this->rotate(90);
-				break;
-			case 7:
-				$this->rotate(-90)->flip();
-				break;
-			case 8:
-				$this->rotate(-90);
-				break;
-		}
-
-		if ($driverImagick) {
-			$this->resource->setImageProperty('Exif:Orientation', Imagick::ORIENTATION_TOPLEFT);
-		}
-
+		$this->driver->autoRotate();
 		return $this;
 	}
 
@@ -756,7 +729,7 @@ class Image
 		}
 
 		// default
-		return $c;
+		return $color;
 	}
 	
 	/**
@@ -772,7 +745,7 @@ class Image
 		$sharp = (is_string($color) && strpos($color, '#')===0);
 
 		// normalize color
-		$color = $this->normalizeColor($color);
+		$color = self::normalizeColor($color);
 
 		// inversed color
 		if ($inverse) {
@@ -805,7 +778,7 @@ class Image
 	/**
 	 * Convert percentage value to it's HEX color representation (0% => 00, 50% => 7F, 100% => FF)
 	 * @param int $percentage value (0 - 100 or 0.0 - 1.0)
-	 * @return float
+	 * @return string
 	 */
 	public static function percentage2hex($percentage)
 	{	
@@ -1095,18 +1068,18 @@ class Image
 	 *
 	 * @param string $position
 	 * @param int $stampWidth
-	 * @param int $stamHeight
+	 * @param int $stampHeight
 	 * @param int $sourceWidth
 	 * @param int $sourceHeight
 	 * @param int $offsetX Watermark X offset
 	 * @param int $offsetY Watermark Y offset
 	 * @return bool
 	 */
-	protected function alignWatermark($position, $stampWidth, $stamHeight, $sourceWidth, $sourceHeight, $offsetX = 0, $offsetY = 0)
+	protected function alignWatermark($position, $stampWidth, $stampHeight, $sourceWidth, $sourceHeight, $offsetX = 0, $offsetY = 0)
 	{
-		if (!empty($position) && ($stampWidth>0) && ($stamHeight > 0) && ($sourceWidth > 0) && ($sourceHeight > 0)) {
+		if (!empty($position) && ($stampWidth>0) && ($stampHeight > 0) && ($sourceWidth > 0) && ($sourceHeight > 0)) {
 
-			if (($stampWidth > $sourceWidth) or ($stamHeight > $sourceHeight)) {
+			if (($stampWidth > $sourceWidth) or ($stampHeight > $sourceHeight)) {
 				return false;
 			}
 
@@ -1119,11 +1092,11 @@ class Image
 					break;
 				case 'left-middle':
 					$x = 0;
-					$y = ($sourceHeight / 2) - ($stamHeight / 2);
+					$y = ($sourceHeight / 2) - ($stampHeight / 2);
 					break;
 				case 'left-bottom':
 					$x = 0;
-					$y = $sourceHeight - $stamHeight;
+					$y = $sourceHeight - $stampHeight;
 					break;
 				case 'middle-top':
 					$x = ($sourceWidth / 2) - ($stampWidth / 2);
@@ -1131,11 +1104,11 @@ class Image
 					break;
 				case 'center':
 					$x = ($sourceWidth / 2) - ($stampWidth / 2);
-					$y = ($sourceHeight / 2) - ($stamHeight / 2);
+					$y = ($sourceHeight / 2) - ($stampHeight / 2);
 					break;
 				case 'middle-bottom':
 					$x = ($sourceWidth / 2) - ($stampWidth / 2);
-					$y = $sourceHeight - $stamHeight;
+					$y = $sourceHeight - $stampHeight;
 					break;
 				case 'right-top':
 					$x = $sourceWidth - $stampWidth;
@@ -1143,11 +1116,11 @@ class Image
 					break;
 				case 'right-middle':
 					$x = $sourceWidth - $stampWidth;
-					$y = ($sourceHeight / 2) - ($stamHeight / 2);
+					$y = ($sourceHeight / 2) - ($stampHeight / 2);
 					break;
 				case 'right-bottom':
 					$x = $sourceWidth - $stampWidth;
-					$y = $sourceHeight - $stamHeight;
+					$y = $sourceHeight - $stampHeight;
 					break;
 				default:
 					return false;
