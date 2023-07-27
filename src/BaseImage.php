@@ -710,7 +710,7 @@ abstract class BaseImage
 	 */
 	public function thumbnail($width, $height, $fill = false, $allowEnlarge = false, $bgColor = null)
 	{
-		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", {$bgColor})");
+		$this->debug("thumbnail({$width}, {$height}, ". ($fill===true ? 'true':'false').", ". ($allowEnlarge===true ? 'true':'false') .", ". (is_array($bgColor) ? json_encode($bgColor) : $bgColor). ")");
 
 		if (!is_numeric($width) || !is_numeric($height) || $width <= 0 || $height <= 0) {
 			throw new InvalidArgumentException('Width and height value must be an integer and must be non negative.');
