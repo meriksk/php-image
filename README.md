@@ -1,5 +1,4 @@
-PHP-Image Library
-======================
+# PHP-Image Library
 
 [![Latest Stable Version](http://img.shields.io/github/release/meriksk/php-image.svg)](https://packagist.org/packages/meriksk/php-image)
 [![License](https://poser.pugx.org/meriksk/php-image/license)](https://packagist.org/packages/meriksk/php-image)
@@ -8,14 +7,14 @@ PHP-Image Library
 
 ## Requirements
 
-- PHP >=5.6
+- PHP >=8.1
 
 ## Supported Image Libraries
 
 - GD Library (>=2.0)
 - Imagick PHP extension (>=6.5.7)
 
-------------------
+---
 
 ## Setup
 
@@ -28,22 +27,21 @@ Either run
 composer require meriksk/php-image
 ```
 
-or add 
+or add
 
 ```
-"meriksk/php-image": "~1.0" 
+"meriksk/php-image": "~1.0"
 ```
 
 to your composer.json and run composer update
 
 ## Usage
 
-* [Open image](#open-image)
-* [Resize image](#resize-image)
-* [Crop image](#crop-image)
+- [Open image](#open-image)
+- [Resize image](#resize-image)
+- [Crop image](#crop-image)
 
-Open image
-----------
+## Open image
 
 Because this class uses namespacing, when instantiating the object, you need to either use the fully qualified namespace:
 
@@ -53,7 +51,7 @@ $image = new \meriksk\PhpImage\Image($filename);
 
 or alias it:
 
-```php 
+```php
 use \meriksk\PhpImage\Image;
 
 $image = new Image($filename);
@@ -66,8 +64,7 @@ Imagick extension is preferred if is available. You can force the extension for 
 $image = new Image($filename, Image::DRIVER_IMAGICK);
 ```
 
-Save image
-----------
+## Save image
 
 Library supports three formats of image: 'jpeg', 'png' and 'gif'. By default they quality is set to 75. When saving to disk or outputting into the browser, the script assumes the same output type and quality as input.
 
@@ -81,8 +78,7 @@ Save in a different type to the source:
 $image->save($filename, 60, 'png');
 ```
 
-Output image
-----------
+## Output image
 
 To render the image directly into the browser, you can call:
 
@@ -90,70 +86,65 @@ To render the image directly into the browser, you can call:
 $image->toScreen(60, 'png');
 ```
 
-Resize
-------------
+## Resize
 
-**resize**
+resize
 
 ```php
 $image = $image->resize($width, $height, $allow_enlarge);
 ```
 
-**resize to width**
+resize to width
 
 ```php
 $image = $image->resizeToWidth($width, $allow_enlarge);
 ```
 
-**resize to height**
+resize to height
 
 ```php
 $image = $image->resizeToHeight($height, $allow_enlarge);
 ```
 
-**resize to best fit**
+resize to best fit
 
 ```php
 $image = $image->resizeToBestFit($max_width, $max_height, $allow_enlarge);
 ```
 
-**resize to long side**
+resize to long side
 
 ```php
 $image = $image->resizeToLongSide($max, $allow_enlarge);
 ```
 
-**resize to short side**
+resize to short side
 
 ```php
 $image = $image->resizeToShortSide($max, $allow_enlarge);
 ```
 
+## Crop
 
-Crop
-----------
-
-** manual crop **
+manual crop
 
 ```php
 $image->crop($x, $y, $width, $height, $allow_enlarge);
 ```
 
-** automatic crop **
+automatic crop
 
 ```php
 $image->autoCrop($width, $height, $position);
 ```
 
-Thumbnail
-----------
+## Thumbnail
 
 ```php
 $image->thumbnail($width, $height, $fill, $allow_enlarge);
 ```
 
-Rotate image
-------------
+## Rotate image
 
 Rotating is counter clockwise;
 
@@ -169,8 +160,7 @@ Rotate on 45 degrees, and fill empty field with white color:
 $image->rotate(45, '#FFFFFF');
 ```
 
-Flip image
-----------
+## Flip image
 
 Flip in vertical direction:
 
@@ -190,7 +180,6 @@ Flip in both directions:
 $image->flip(Image::FLIP_BOTH);
 ```
 
-Filters
--------
+## Filters
 
 todo
